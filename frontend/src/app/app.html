@@ -1,1 +1,41 @@
-<router-outlet />
+<main class="page" dir="rtl">
+	<section class="search-section">
+		<h1 class="title">قاموس اللهجة السودانية</h1>
+
+		<div class="search-area">
+			<input
+				class="search-input"
+				type="text"
+				[value]="searchQuery"
+				(input)="onSearchInput(($any($event.target)).value)"
+				placeholder="ابحث عن كلمة..."
+				autocomplete="off"
+				aria-label="حقل البحث"
+			/>
+
+			<ul *ngIf="showDropdown" class="dropdown" role="listbox" aria-label="نتائج البحث">
+				<li *ngIf="isLoading" class="dropdown-item disabled" aria-disabled="true">جاري البحث...</li>
+
+				<li
+					*ngFor="let word of results; trackBy: trackByWordId"
+					class="dropdown-item"
+					(click)="selectWord(word)"
+					role="option"
+				>
+					{{ word.headword }}
+				</li>
+
+				<li *ngIf="shouldShowNoResults" class="dropdown-item disabled" aria-disabled="true">لا توجد نتائج</li>
+
+				<li *ngIf="hasRequestError && !isLoading" class="dropdown-item disabled" aria-disabled="true">
+					حدث خطأ أثناء البحث
+				</li>
+			</ul>
+		</div>
+
+		<article *ngIf="selectedWord as word" class="word-card">
+			<h2 class="word-headword">{{ word.headword }}</h2>
+			<p class="word-definition">{{ word.definition }}</p>
+		</article>
+	</section>
+</main>

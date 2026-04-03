@@ -1,0 +1,128 @@
+:host {
+    display: block;
+    min-height: 100vh;
+    background-color: #ffffff;
+    color: #202124;
+    font-family: 'Noto Naskh Arabic', Tahoma, sans-serif;
+}
+
+.page {
+    min-height: 100vh;
+    box-sizing: border-box;
+    padding: 72px 16px 24px;
+    display: flex;
+    justify-content: center;
+}
+
+.search-section {
+    width: 100%;
+    max-width: 640px;
+}
+
+.title {
+    margin: 0 0 30px;
+    text-align: center;
+    color: #1a73e8;
+    font-size: clamp(2rem, 5vw, 3.4rem);
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.search-area {
+    position: relative;
+}
+
+.search-input {
+    width: 100%;
+    height: 54px;
+    border: 1px solid #d2d6dc;
+    border-radius: 27px;
+    padding: 0 22px;
+    box-sizing: border-box;
+    font-size: 1.08rem;
+    color: #202124;
+    background-color: #ffffff;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.search-input::placeholder {
+    color: #5f6368;
+}
+
+.search-input:focus {
+    border-color: #1a73e8;
+    box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.14);
+}
+
+.dropdown {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 8px 0;
+    border: 1px solid #e1e3e6;
+    border-radius: 16px;
+    background-color: #ffffff;
+    box-shadow: 0 6px 20px rgba(60, 64, 67, 0.12);
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.dropdown-item {
+    padding: 12px 18px;
+    font-size: 1rem;
+    line-height: 1.5;
+    cursor: pointer;
+}
+
+.dropdown-item:hover {
+    background-color: #f1f5fd;
+}
+
+.dropdown-item.disabled {
+    color: #6b7280;
+    cursor: default;
+    pointer-events: none;
+    background-color: #ffffff;
+}
+
+.word-card {
+    margin-top: 24px;
+    padding: 20px;
+    border: 1px solid #dbe7ff;
+    border-radius: 14px;
+    background-color: #f8fbff;
+}
+
+.word-headword {
+    margin: 0 0 12px;
+    color: #1a73e8;
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.word-definition {
+    margin: 0;
+    font-size: 1.08rem;
+    line-height: 1.9;
+    white-space: pre-wrap;
+}
+
+@media (max-width: 600px) {
+    .page {
+        padding-top: 44px;
+    }
+
+    .title {
+        margin-bottom: 22px;
+    }
+
+    .search-input {
+        height: 50px;
+        font-size: 1rem;
+    }
+
+    .word-headword {
+        font-size: 1.72rem;
+    }
+}
