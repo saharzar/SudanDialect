@@ -1,0 +1,33 @@
+<div class="search-area">
+  <input
+    class="search-input"
+    type="text"
+    [value]="query"
+    (input)="onInput(($any($event.target)).value)"
+    placeholder="ابحث عن كلمة..."
+    autocomplete="off"
+    aria-label="حقل البحث"
+  />
+
+  @if (showDropdown) {
+    <ul class="dropdown" role="listbox" aria-label="نتائج البحث">
+      @if (isLoading) {
+        <li class="dropdown-item disabled" aria-disabled="true">جاري البحث...</li>
+      }
+
+      @for (word of results; track word.id) {
+        <li class="dropdown-item" (click)="selectWord(word)" role="option">
+          {{ word.headword }}
+        </li>
+      }
+
+      @if (shouldShowNoResults) {
+        <li class="dropdown-item disabled" aria-disabled="true">لا توجد نتائج</li>
+      }
+
+      @if (hasRequestError && !isLoading) {
+        <li class="dropdown-item disabled" aria-disabled="true">حدث خطأ أثناء البحث</li>
+      }
+    </ul>
+  }
+</div>

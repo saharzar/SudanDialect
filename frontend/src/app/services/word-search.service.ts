@@ -1,0 +1,34 @@
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { Observable, of } from 'rxjs';
+import { map } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
+import { WordSearchResult } from '../models/word-search-result';
+
+@Injectable({ providedIn: 'root' })
+export class WordSearchService {
+  private readonly http = inject(HttpClient);
+
+  search(query: string): Observable<WordSearchResult[]> {
+    const trimmedQuery = query.trim();
+    if (!trimmedQuery) {
+      return of([]);
+    }
+
+    const params = new HttpParams().set('query', trimmedQuery);
+    return this.http
+      .get<WordSearchResult[]>(`${environment.apiBaseUrl}/api/words/search`, { params })
+      .pipe(map((results) => this.sortBySimilarity(results)));
+  }
+
+  private sortBySimilarity(results: WordSearchResult[]): WordSearchResult[] {
+    return [...results].sort((first, second) => {
+      const scoreDifference = second.similarityScore - first.similarityScore;
+      if (scoreDifference !== 0) {
+        return scoreDifference;
+      }
+
+      return first.headword.localeCompare(second.headword, 'ar');
+    });
+  }
+}

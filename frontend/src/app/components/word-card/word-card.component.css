@@ -1,0 +1,28 @@
+.word-card {
+  margin-top: 24px;
+  padding: 20px;
+  border: 1px solid #dbe7ff;
+  border-radius: 14px;
+  background-color: #f8fbff;
+}
+
+.word-headword {
+  margin: 0 0 12px;
+  color: #1a73e8;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.word-definition {
+  margin: 0;
+  font-size: 1.08rem;
+  line-height: 1.9;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 600px) {
+  .word-headword {
+    font-size: 1.72rem;
+  }
+}
