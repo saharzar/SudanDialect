@@ -3,17 +3,17 @@
     <h1 class="title">قاموس اللهجة السودانية</h1>
 
     <app-search-bar
-      [query]="searchQuery"
-      [results]="results"
-      [isLoading]="isLoading"
-      [showDropdown]="showDropdown"
-      [hasRequestError]="hasRequestError"
-      [shouldShowNoResults]="shouldShowNoResults"
+      [query]="searchQuery()"
+      [results]="results()"
+      [isLoading]="isLoading()"
+      [showDropdown]="showDropdown()"
+      [hasRequestError]="hasRequestError()"
+      [shouldShowNoResults]="shouldShowNoResults()"
       (queryChanged)="onSearchInput($event)"
       (wordSelected)="selectWord($event)"
     />
 
-    @if (selectedWord; as word) {
+    @if (selectedWord(); as word) {
       <app-word-card [word]="word" />
     }
   </section>

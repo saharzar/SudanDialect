@@ -1,4 +1,4 @@
-import { Component, OnDestroy, inject } from '@angular/core';
+import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
 import { Subject, of } from 'rxjs';
 import { catchError, debounceTime, distinctUntilChanged, switchMap, takeUntil, tap } from 'rxjs/operators';
 import { SearchBarComponent } from '../../components/search-bar/search-bar.component';
@@ -17,12 +17,20 @@ export class HomePageComponent implements OnDestroy {
   private readonly searchInput$ = new Subject<string>();
   private readonly destroy$ = new Subject<void>();
 
-  protected searchQuery = '';
-  protected results: WordSearchResult[] = [];
-  protected selectedWord: WordSearchResult | null = null;
-  protected isLoading = false;
-  protected showDropdown = false;
-  protected hasRequestError = false;
+  protected readonly searchQuery = signal('');
+  protected readonly results = signal<WordSearchResult[]>([]);
+  protected readonly selectedWord = signal<WordSearchResult | null>(null);
+  protected readonly isLoading = signal(false);
+  protected readonly showDropdown = signal(false);
+  protected readonly hasRequestError = signal(false);
+  protected readonly shouldShowNoResults = computed(() => {
+    return (
+      !this.isLoading() &&
+      !this.hasRequestError() &&
+      this.searchQuery().trim().length > 0 &&
+      this.results().length === 0
+    );
+  });
 
   constructor() {
     this.searchInput$
@@ -30,13 +38,13 @@ export class HomePageComponent implements OnDestroy {
         debounceTime(150),
         distinctUntilChanged(),
         tap(() => {
-          this.isLoading = true;
-          this.hasRequestError = false;
+          this.isLoading.set(true);
+          this.hasRequestError.set(false);
         }),
         switchMap((query) =>
           this.wordSearchService.search(query).pipe(
             catchError(() => {
-              this.hasRequestError = true;
+              this.hasRequestError.set(true);
               return of<WordSearchResult[]>([]);
             })
           )
@@ -44,36 +52,32 @@ export class HomePageComponent implements OnDestroy {
         takeUntil(this.destroy$)
       )
       .subscribe((results) => {
-        this.results = results;
-        this.isLoading = false;
-        this.showDropdown = this.searchQuery.trim().length > 0;
+        this.results.set(results);
+        this.isLoading.set(false);
+        this.showDropdown.set(this.searchQuery().trim().length > 0);
       });
   }
 
   protected onSearchInput(value: string): void {
-    this.searchQuery = value;
-    this.selectedWord = null;
+    this.searchQuery.set(value);
+    this.selectedWord.set(null);
 
     const trimmedQuery = value.trim();
     if (!trimmedQuery) {
-      this.results = [];
-      this.isLoading = false;
-      this.hasRequestError = false;
-      this.showDropdown = false;
+      this.results.set([]);
+      this.isLoading.set(false);
+      this.hasRequestError.set(false);
+      this.showDropdown.set(false);
       return;
     }
 
-    this.showDropdown = true;
+    this.showDropdown.set(true);
     this.searchInput$.next(trimmedQuery);
   }
 
   protected selectWord(word: WordSearchResult): void {
-    this.selectedWord = word;
-    this.showDropdown = false;
-  }
-
-  protected get shouldShowNoResults(): boolean {
-    return !this.isLoading && !this.hasRequestError && this.searchQuery.trim().length > 0 && this.results.length === 0;
+    this.selectedWord.set(word);
+    this.showDropdown.set(false);
   }
 
   ngOnDestroy(): void {
