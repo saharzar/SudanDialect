@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiBaseUrl: 'http://localhost:5038'
+  apiBaseUrl: 'https://api.sudandialect.com'
 };

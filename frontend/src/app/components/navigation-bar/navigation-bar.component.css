@@ -65,3 +65,13 @@
   color: #333;
   border-bottom-color: #333;
 }
+
+@media (max-width: 520px) {
+  .brand-name {
+    display: none;
+  }
+
+  .brand-link {
+    gap: 0;
+  }
+}
