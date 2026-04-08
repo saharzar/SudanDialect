@@ -1,5 +1,7 @@
 <main class="page" dir="rtl">
   <section class="search-section">
+    <img src="/sudan_dialect_logo_16x16_400x.webp" alt="logo" class="brand-logo">
+
     <h1 class="title">قاموس اللهجة السودانية</h1>
 
     <app-search-bar
@@ -13,10 +15,12 @@
       (inputFocused)="onSearchInputFocus()"
       (inputBlurred)="onSearchInputBlur()"
       (wordSelected)="selectWord($event)"
+
+      class="app-search-bar"
     />
 
     @if (selectedWord(); as word) {
-      <app-word-card [word]="word" />
+      <app-word-card [word]="word" class="word-card"/>
     }
 
     @if (hasWordLoadError()) {
