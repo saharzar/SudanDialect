@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: sudan_dialect_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    image: ghcr.io/xash3000/sudandialect:latest
+    container_name: sudan_dialect_api
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=db;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};
+      - Jwt__SigningKey=${JWT_SIGNING_KEY}
+      - AdminSeed__Users__0__Username=${ADMIN_USER_1}
+      - AdminSeed__Users__0__Password=${ADMIN_PASS_1}
+      - AllowedOrigins__0=${FRONTEND_URL}
+    ports:
+      - "8080:8080"
+
+volumes:
+  postgres_data:
+

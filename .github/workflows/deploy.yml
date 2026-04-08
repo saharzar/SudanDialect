@@ -1,0 +1,132 @@
+name: Build and Deploy to VPS
+
+on:
+  push:
+    branches:
+      - master
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: xash3000/sudandialect
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install EF Core Tools
+        run: dotnet tool install --global dotnet-ef
+
+      - name: Restore Backend Dependencies
+        run: dotnet restore backend/SudanDialect.Api/SudanDialect.Api.csproj
+
+      - name: Generate DB Migration Script
+        run: |
+          dotnet ef migrations script --idempotent \
+          --project backend/SudanDialect.Api/SudanDialect.Api.csproj \
+          -o migrate.sql
+
+      - name: Upload SQL Script Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-migration
+          path: migrate.sql
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Fixed: Ensured casing matches SudanDialect.Api
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: backend/SudanDialect.Api/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Download SQL Script Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: db-migration
+
+      - name: Copy files via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "docker-compose.yml,migrate.sql"
+          target: "~/deployments/sudandialect"
+          rm: false
+
+      - name: Execute Deploy and Migrate on VPS
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          JWT_SIGNING_KEY: ${{ secrets.JWT_SIGNING_KEY }}
+          ADMIN_USER_1: ${{ secrets.ADMIN_USER_1 }}
+          ADMIN_PASS_1: ${{ secrets.ADMIN_PASS_1 }}
+          GHCR_PAT: ${{ secrets.GHCR_PAT }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          envs: POSTGRES_USER,POSTGRES_PASSWORD,POSTGRES_DB,JWT_SIGNING_KEY,ADMIN_USER_1,ADMIN_PASS_1,GHCR_PAT
+          script: |
+            cd ~/deployments/sudandialect
+
+            # Generate .env file
+            echo "POSTGRES_USER=$POSTGRES_USER" > .env
+            echo "POSTGRES_PASSWORD=$POSTGRES_PASSWORD" >> .env
+            echo "POSTGRES_DB=$POSTGRES_DB" >> .env
+            echo "JWT_SIGNING_KEY=$JWT_SIGNING_KEY" >> .env
+            echo "ADMIN_USER_1=$ADMIN_USER_1" >> .env
+            echo "ADMIN_PASS_1=$ADMIN_PASS_1" >> .env
+            echo "FRONTEND_URL=${{ secrets.FRONTEND_URL }}" >> .env
+
+            # Login to GHCR on VPS
+            echo $GHCR_PAT | docker login ghcr.io -u xash3000 --password-stdin
+
+            # Pull latest images
+            docker compose pull
+
+            # Stop existing setup
+            docker compose down
+
+            # Start DB and wait for it to be healthy (requires healthcheck in docker-compose.yml)
+            docker compose up -d --wait db
+
+            # Apply migrations
+            cat migrate.sql | docker exec -i sudan_dialect_db psql -U $POSTGRES_USER -d $POSTGRES_DB
+
+            # Start the API
+            docker compose up -d api
+
+            # Cleanup
+            docker image prune -f
+            rm .env migrate.sql
