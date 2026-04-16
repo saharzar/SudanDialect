@@ -12,4 +12,89 @@
       }
     </p>
   </div>
+
+  @if (isAdmin()) {
+    <div class="setting-card users-card">
+      <h3>إدارة المستخدمين</h3>
+      <p class="helper-text">يمكنك إنشاء مستخدم جديد (دور moderator افتراضياً)، وتحديث اسم المستخدم/كلمة المرور، أو حذف المستخدم.</p>
+
+      <form class="create-user-form" [formGroup]="createUserForm" (ngSubmit)="createUser()" novalidate>
+        <label for="new-username">اسم مستخدم جديد</label>
+        <input id="new-username" type="text" formControlName="username" placeholder="مثال: moderator1" autocomplete="off" />
+        @if (createUserForm.controls.username.touched && createUserForm.controls.username.invalid) {
+          <small class="validation-message">اسم المستخدم مطلوب (3 أحرف على الأقل).</small>
+        }
+
+        <label for="new-password">كلمة المرور</label>
+        <input id="new-password" type="password" formControlName="password" placeholder="أدخل كلمة مرور قوية" autocomplete="new-password" />
+        @if (createUserForm.controls.password.touched && createUserForm.controls.password.invalid) {
+          <small class="validation-message">كلمة المرور مطلوبة (8 أحرف على الأقل).</small>
+        }
+
+        <button type="submit" [disabled]="isCreatingUser()">إنشاء مستخدم</button>
+      </form>
+
+      @if (createErrorMessage()) {
+        <p class="error-message" role="alert">{{ createErrorMessage() }}</p>
+      }
+
+      <div class="users-section">
+        <h4>قائمة المستخدمين</h4>
+
+        @if (isLoadingUsers()) {
+          <p class="helper-text">جاري تحميل المستخدمين...</p>
+        } @else if (usersErrorMessage()) {
+          <p class="error-message" role="alert">{{ usersErrorMessage() }}</p>
+        } @else if (users().length === 0) {
+          <p class="helper-text">لا يوجد مستخدمون بعد.</p>
+        } @else {
+          <div class="users-list">
+            @for (user of users(); track user.id) {
+              <article class="user-row">
+                <header class="user-row-header">
+                  <div>
+                    <h5>{{ user.username }}</h5>
+                    <p>{{ user.roles.length > 0 ? user.roles.join('، ') : '-' }}</p>
+                  </div>
+                </header>
+
+                <div class="user-row-fields">
+                  <label [for]="'username-' + user.id">تحديث اسم المستخدم</label>
+                  <input
+                    [id]="'username-' + user.id"
+                    type="text"
+                    [value]="user.nextUsername"
+                    (input)="updateUserDraftUsername(user.id, $any($event.target).value)"
+                    autocomplete="off"
+                  />
+
+                  <label [for]="'password-' + user.id">تحديث كلمة المرور</label>
+                  <input
+                    [id]="'password-' + user.id"
+                    type="password"
+                    [value]="user.nextPassword"
+                    (input)="updateUserDraftPassword(user.id, $any($event.target).value)"
+                    autocomplete="new-password"
+                  />
+                </div>
+
+                @if (user.errorMessage) {
+                  <p class="error-message" role="alert">{{ user.errorMessage }}</p>
+                }
+
+                <div class="user-row-actions">
+                  <button type="button" (click)="saveUser(user.id)" [disabled]="user.isSaving">
+                    تحديث المستخدم
+                  </button>
+                  <button type="button" class="danger" (click)="deleteUser(user.id)" [disabled]="user.isSaving">
+                    حذف المستخدم
+                  </button>
+                </div>
+              </article>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
 </section>

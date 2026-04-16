@@ -2,9 +2,20 @@
     display: block;
 }
 
+.settings-page {
+    display: grid;
+    gap: 14px;
+}
+
 .settings-page h2 {
-    margin: 0 0 12px;
+    margin: 0;
     color: #183651;
+}
+
+.settings-page h3,
+.settings-page h4,
+.settings-page h5 {
+    margin: 0;
 }
 
 .setting-card {
@@ -17,4 +28,94 @@
 
 .setting-card p {
     margin: 0;
+}
+
+.helper-text {
+    color: #4a657e;
+}
+
+.users-card {
+    display: grid;
+    gap: 12px;
+}
+
+.create-user-form {
+    display: grid;
+    gap: 8px;
+}
+
+.create-user-form input,
+.user-row-fields input {
+    border: 1px solid rgba(27, 77, 126, 0.28);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font: inherit;
+}
+
+.create-user-form input:focus,
+.user-row-fields input:focus {
+    outline: 2px solid rgba(24, 87, 153, 0.28);
+    outline-offset: 1px;
+}
+
+.validation-message {
+    color: #8d5b00;
+}
+
+.error-message {
+    color: #a51632;
+}
+
+.create-user-form button,
+.user-row-actions button {
+    border: 0;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font: inherit;
+    cursor: pointer;
+    color: #fff;
+    background-color: #1a5e98;
+}
+
+.create-user-form button:disabled,
+.user-row-actions button:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
+.users-section {
+    display: grid;
+    gap: 10px;
+}
+
+.users-list {
+    display: grid;
+    gap: 10px;
+}
+
+.user-row {
+    border: 1px solid rgba(27, 77, 126, 0.2);
+    border-radius: 10px;
+    padding: 10px;
+    background: #f9fcff;
+    display: grid;
+    gap: 8px;
+}
+
+.user-row-header p {
+    color: #3a5d7f;
+}
+
+.user-row-fields {
+    display: grid;
+    gap: 6px;
+}
+
+.user-row-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.user-row-actions .danger {
+    background-color: #9d2640;
 }

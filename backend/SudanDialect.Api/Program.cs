@@ -91,6 +91,7 @@ builder.Services.AddScoped<IWordService, WordService>();
 builder.Services.AddScoped<IAdminWordRepository, AdminWordRepository>();
 builder.Services.AddScoped<IAdminWordService, AdminWordService>();
 builder.Services.AddScoped<IAdminAuthService, AdminAuthService>();
+builder.Services.AddScoped<IAdminUserService, AdminUserService>();
 
 const string DevCorsPolicy = "DevFrontendPolicy";
 builder.Services.AddCors(options =>
