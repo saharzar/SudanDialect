@@ -44,7 +44,8 @@ public sealed class AdminAuthController : ControllerBase
             return Ok(new AdminLoginResponseDto
             {
                 ExpiresAtUtc = authResult.Value.AccessExpiresAtUtc,
-                Username = authResult.Value.Username
+                Username = authResult.Value.Username,
+                Roles = authResult.Value.Roles
             });
         }
         catch (InvalidOperationException)
@@ -60,9 +61,9 @@ public sealed class AdminAuthController : ControllerBase
     [HttpGet("session")]
     [ProducesResponseType(typeof(AdminLoginResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public ActionResult<AdminLoginResponseDto> Session()
+    public async Task<ActionResult<AdminLoginResponseDto>> Session(CancellationToken cancellationToken)
     {
-        return Ok(_adminAuthService.BuildSessionResponse(User));
+        return Ok(await _adminAuthService.BuildSessionResponseAsync(User, cancellationToken));
     }
 
     [HttpPost("refresh")]
@@ -95,7 +96,8 @@ public sealed class AdminAuthController : ControllerBase
             return Ok(new AdminLoginResponseDto
             {
                 ExpiresAtUtc = authResult.Value.AccessExpiresAtUtc,
-                Username = authResult.Value.Username
+                Username = authResult.Value.Username,
+                Roles = authResult.Value.Roles
             });
         }
         catch (InvalidOperationException)

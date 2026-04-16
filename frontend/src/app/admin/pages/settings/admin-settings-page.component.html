@@ -3,5 +3,13 @@
 
   <div class="setting-card">
     <p><strong>المستخدم الحالي:</strong> {{ username() }}</p>
+    <p>
+      <strong>الأدوار الحالية:</strong>
+      @if (roles().length > 0) {
+        {{ roles().join('، ') }}
+      } @else {
+        -
+      }
+    </p>
   </div>
 </section>

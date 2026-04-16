@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using SudanDialect.Api.Configuration;
 using SudanDialect.Api.Dtos.Admin;
 using SudanDialect.Api.Interfaces.Services;
+using SudanDialect.Api.Utilities;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -32,7 +33,7 @@ public sealed class AdminAuthService : IAdminAuthService
         _jwtOptions = jwtOptions.Value;
     }
 
-    public async Task<(string AccessToken, DateTime AccessExpiresAtUtc, string RefreshToken, DateTime RefreshExpiresAtUtc, string Username)?> LoginAsync(
+    public async Task<(string AccessToken, DateTime AccessExpiresAtUtc, string RefreshToken, DateTime RefreshExpiresAtUtc, string Username, IReadOnlyCollection<string> Roles)?> LoginAsync(
         string username,
         string password,
         CancellationToken cancellationToken = default)
@@ -58,8 +59,9 @@ public sealed class AdminAuthService : IAdminAuthService
         var accessTokenTtlMinutes = Math.Clamp(_jwtOptions.ExpirationMinutes, 10, 15);
         var accessExpiresAtUtc = DateTime.UtcNow.AddMinutes(accessTokenTtlMinutes);
         var refreshExpiresAtUtc = DateTime.UtcNow.AddDays(Math.Max(1, _jwtOptions.RefreshTokenExpirationDays));
+        var roles = await EnsureUserRolesAsync(user);
 
-        var accessToken = GenerateAccessToken(user, normalizedUsername, accessExpiresAtUtc);
+        var accessToken = GenerateAccessToken(user, normalizedUsername, roles, accessExpiresAtUtc);
         var refreshToken = CreateRefreshTokenValue(user.Id);
 
         await PersistRefreshTokenAsync(user, refreshToken, refreshExpiresAtUtc);
@@ -69,11 +71,14 @@ public sealed class AdminAuthService : IAdminAuthService
             accessExpiresAtUtc,
             refreshToken,
             refreshExpiresAtUtc,
-            user.UserName ?? normalizedUsername);
+            user.UserName ?? normalizedUsername,
+            roles);
     }
 
-    public AdminLoginResponseDto BuildSessionResponse(ClaimsPrincipal user)
+    public async Task<AdminLoginResponseDto> BuildSessionResponseAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         var username = user.FindFirstValue(ClaimTypes.Name)
             ?? user.FindFirstValue(JwtRegisteredClaimNames.UniqueName)
             ?? string.Empty;
@@ -85,14 +90,38 @@ public sealed class AdminAuthService : IAdminAuthService
             expiresAtUtc = DateTimeOffset.FromUnixTimeSeconds(expUnixSeconds).UtcDateTime;
         }
 
+        var roleClaims = user.FindAll(ClaimTypes.Role)
+            .Select(claim => claim.Value)
+            .Where(role => !string.IsNullOrWhiteSpace(role))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        var resolvedRoles = roleClaims;
+        if (resolvedRoles.Length == 0)
+        {
+            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? user.FindFirstValue(JwtRegisteredClaimNames.Sub);
+
+            if (!string.IsNullOrWhiteSpace(userId))
+            {
+                var identityUser = await _userManager.FindByIdAsync(userId);
+                if (identityUser is not null)
+                {
+                    var roles = await EnsureUserRolesAsync(identityUser);
+                    resolvedRoles = roles.ToArray();
+                }
+            }
+        }
+
         return new AdminLoginResponseDto
         {
             ExpiresAtUtc = expiresAtUtc,
-            Username = username
+            Username = username,
+            Roles = resolvedRoles
         };
     }
 
-    public async Task<(string AccessToken, DateTime AccessExpiresAtUtc, string RefreshToken, DateTime RefreshExpiresAtUtc, string Username)?> RefreshAsync(
+    public async Task<(string AccessToken, DateTime AccessExpiresAtUtc, string RefreshToken, DateTime RefreshExpiresAtUtc, string Username, IReadOnlyCollection<string> Roles)?> RefreshAsync(
         string refreshTokenValue,
         CancellationToken cancellationToken = default)
     {
@@ -122,8 +151,9 @@ public sealed class AdminAuthService : IAdminAuthService
         var accessTokenTtlMinutes = Math.Clamp(_jwtOptions.ExpirationMinutes, 10, 15);
         var accessExpiresAtUtc = DateTime.UtcNow.AddMinutes(accessTokenTtlMinutes);
         var refreshExpiresAtUtc = DateTime.UtcNow.AddDays(Math.Max(1, _jwtOptions.RefreshTokenExpirationDays));
+        var roles = await EnsureUserRolesAsync(user);
 
-        var accessToken = GenerateAccessToken(user, user.UserName ?? userId, accessExpiresAtUtc);
+        var accessToken = GenerateAccessToken(user, user.UserName ?? userId, roles, accessExpiresAtUtc);
         var refreshedToken = CreateRefreshTokenValue(user.Id);
 
         await PersistRefreshTokenAsync(user, refreshedToken, refreshExpiresAtUtc);
@@ -133,7 +163,8 @@ public sealed class AdminAuthService : IAdminAuthService
             accessExpiresAtUtc,
             refreshedToken,
             refreshExpiresAtUtc,
-            user.UserName ?? userId);
+                user.UserName ?? userId,
+                roles);
     }
 
     public async Task LogoutAsync(ClaimsPrincipal user, string? refreshTokenValue, CancellationToken cancellationToken = default)
@@ -168,7 +199,11 @@ public sealed class AdminAuthService : IAdminAuthService
         }
     }
 
-    private string GenerateAccessToken(IdentityUser user, string fallbackUsername, DateTime expiresAtUtc)
+    private string GenerateAccessToken(
+        IdentityUser user,
+        string fallbackUsername,
+        IReadOnlyCollection<string> roles,
+        DateTime expiresAtUtc)
     {
         var claims = new List<Claim>
         {
@@ -178,6 +213,11 @@ public sealed class AdminAuthService : IAdminAuthService
             new(JwtRegisteredClaimNames.UniqueName, user.UserName ?? fallbackUsername),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N"))
         };
+
+        foreach (var role in roles)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, role));
+        }
 
         var tokenDescriptor = new SecurityTokenDescriptor
         {
@@ -192,6 +232,23 @@ public sealed class AdminAuthService : IAdminAuthService
 
         var token = _tokenHandler.CreateToken(tokenDescriptor);
         return _tokenHandler.WriteToken(token);
+    }
+
+    private async Task<IReadOnlyCollection<string>> EnsureUserRolesAsync(IdentityUser user)
+    {
+        var existingRoles = await _userManager.GetRolesAsync(user);
+        if (existingRoles.Count > 0)
+        {
+            return existingRoles.ToArray();
+        }
+
+        var addDefaultRoleResult = await _userManager.AddToRoleAsync(user, AdminRoleNames.Moderator);
+        if (addDefaultRoleResult.Succeeded)
+        {
+            return [AdminRoleNames.Moderator];
+        }
+
+        return [AdminRoleNames.Moderator];
     }
 
     private async Task PersistRefreshTokenAsync(IdentityUser user, string refreshTokenValue, DateTime expiresAtUtc)
