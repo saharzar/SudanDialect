@@ -140,10 +140,15 @@ export class WordCardComponent implements OnChanges, OnDestroy {
     this.turnstileToken = null;
 
     const turnstile = this.document.defaultView?.turnstile;
-    if (turnstile && this.turnstileWidgetId !== null && turnstile.remove) {
-      turnstile.remove(this.turnstileWidgetId);
-      this.turnstileWidgetId = null;
+    if (turnstile && this.turnstileWidgetId !== null) {
+      if (turnstile.remove) {
+        turnstile.remove(this.turnstileWidgetId);
+      } else {
+        turnstile.reset(this.turnstileWidgetId);
+      }
     }
+
+    this.turnstileWidgetId = null;
   }
 
   protected onFeedbackInput(event: Event): void {
@@ -400,10 +405,19 @@ export class WordCardComponent implements OnChanges, OnDestroy {
     }
 
     const turnstile = this.document.defaultView?.turnstile;
-    const container = this.document.getElementById(this.feedbackCaptchaContainerId);
+    const container = await this.waitForCaptchaContainer();
     if (!turnstile || !container) {
       this.feedbackError.set('تعذر تحميل التحقق الأمني.');
       return;
+    }
+
+    if (this.turnstileWidgetId !== null) {
+      if (turnstile.remove) {
+        turnstile.remove(this.turnstileWidgetId);
+      } else {
+        turnstile.reset(this.turnstileWidgetId);
+      }
+      this.turnstileWidgetId = null;
     }
 
     container.innerHTML = '';
@@ -446,8 +460,18 @@ export class WordCardComponent implements OnChanges, OnDestroy {
       const resolveFromWindow = (): void => resolve(Boolean(this.document.defaultView?.turnstile));
 
       if (existingScript) {
+        if (this.document.defaultView?.turnstile) {
+          resolve(true);
+          return;
+        }
+
         existingScript.addEventListener('load', resolveFromWindow, { once: true });
         existingScript.addEventListener('error', () => resolve(false), { once: true });
+
+        this.document.defaultView?.setTimeout(() => {
+          resolve(Boolean(this.document.defaultView?.turnstile));
+        }, 3000);
+
         return;
       }
 
@@ -490,5 +514,30 @@ export class WordCardComponent implements OnChanges, OnDestroy {
     }
 
     return 'تعذر إرسال البلاغ حالياً. حاول مرة أخرى.';
+  }
+
+  private async waitForCaptchaContainer(maxAttempts = 12): Promise<HTMLElement | null> {
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      const container = this.document.getElementById(this.feedbackCaptchaContainerId);
+      if (container instanceof HTMLElement) {
+        return container;
+      }
+
+      await this.delay(16);
+    }
+
+    return null;
+  }
+
+  private delay(milliseconds: number): Promise<void> {
+    return new Promise((resolve) => {
+      const defaultView = this.document.defaultView;
+      if (defaultView) {
+        defaultView.setTimeout(resolve, milliseconds);
+        return;
+      }
+
+      resolve();
+    });
   }
 }
