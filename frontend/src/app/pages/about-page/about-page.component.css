@@ -1,7 +1,6 @@
 .about-container {
   max-width: 900px;
   margin: 3rem auto;
-  padding: 2rem;
   font-family: "Amiri", serif;
   color: var(--color-text-main);
 }

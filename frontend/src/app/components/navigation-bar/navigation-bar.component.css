@@ -74,4 +74,9 @@
   .brand-link {
     gap: 0;
   }
+
+  .brand-logo {
+    width: 42px;
+    height: 42px;
+  }
 }
