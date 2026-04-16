@@ -20,6 +20,7 @@ builder.Services.AddOpenApi();
 
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 builder.Services.Configure<AdminSeedOptions>(builder.Configuration.GetSection(AdminSeedOptions.SectionName));
+builder.Services.Configure<TurnstileOptions>(builder.Configuration.GetSection(TurnstileOptions.SectionName));
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
@@ -89,8 +90,11 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddScoped<IWordRepository, WordRepository>();
 builder.Services.AddScoped<IWordService, WordService>();
+builder.Services.AddHttpClient<ITurnstileVerificationService, TurnstileVerificationService>();
 builder.Services.AddScoped<IAdminWordRepository, AdminWordRepository>();
 builder.Services.AddScoped<IAdminWordService, AdminWordService>();
+builder.Services.AddScoped<IAdminFeedbackRepository, AdminFeedbackRepository>();
+builder.Services.AddScoped<IAdminFeedbackService, AdminFeedbackService>();
 builder.Services.AddScoped<IAdminAuthService, AdminAuthService>();
 builder.Services.AddScoped<IAdminUserService, AdminUserService>();
 

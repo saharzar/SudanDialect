@@ -1,6 +1,7 @@
 using SudanDialect.Api.Dtos;
 using SudanDialect.Api.Interfaces.Repositories;
 using SudanDialect.Api.Interfaces.Services;
+using SudanDialect.Api.Models;
 using SudanDialect.Api.Utilities;
 using System.Globalization;
 using System.Text.RegularExpressions;
@@ -13,15 +14,18 @@ public sealed class WordService : IWordService
     private const int MaxResults = 10;
     private const int MaxBrowseResults = 20000;
     private const int MaxBrowsePageSize = 200;
+    private const int MaxFeedbackLength = 2000;
 
     private static readonly Regex ArabicLetterRegex = new("^[\\u0621-\\u064A]$", RegexOptions.Compiled);
     private static readonly CompareInfo ArabicCompareInfo = CultureInfo.GetCultureInfo("ar").CompareInfo;
 
     private readonly IWordRepository _wordRepository;
+    private readonly ITurnstileVerificationService _turnstileVerificationService;
 
-    public WordService(IWordRepository wordRepository)
+    public WordService(IWordRepository wordRepository, ITurnstileVerificationService turnstileVerificationService)
     {
         _wordRepository = wordRepository;
+        _turnstileVerificationService = turnstileVerificationService;
     }
 
     public async Task<WordSearchResultDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
@@ -142,5 +146,56 @@ public sealed class WordService : IWordService
             TotalCount = totalCount,
             TotalPages = totalPages
         };
+    }
+
+    public async Task<bool> SubmitFeedbackAsync(
+        int wordId,
+        string? feedbackText,
+        string? captchaToken,
+        string? remoteIp,
+        CancellationToken cancellationToken = default)
+    {
+        if (wordId <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(wordId), "Word id must be a positive integer.");
+        }
+
+        if (string.IsNullOrWhiteSpace(feedbackText))
+        {
+            throw new ArgumentException("Feedback text is required.", nameof(feedbackText));
+        }
+
+        var normalizedFeedback = feedbackText.Trim();
+        if (normalizedFeedback.Length > MaxFeedbackLength)
+        {
+            throw new ArgumentException($"Feedback text cannot exceed {MaxFeedbackLength} characters.", nameof(feedbackText));
+        }
+
+        if (string.IsNullOrWhiteSpace(captchaToken))
+        {
+            throw new ArgumentException("Captcha token is required.", nameof(captchaToken));
+        }
+
+        var captchaValid = await _turnstileVerificationService.VerifyAsync(captchaToken, remoteIp, cancellationToken);
+        if (!captchaValid)
+        {
+            throw new ArgumentException("Captcha verification failed.", nameof(captchaToken));
+        }
+
+        var word = await _wordRepository.GetActiveByIdAsync(wordId, cancellationToken);
+        if (word is null)
+        {
+            return false;
+        }
+
+        await _wordRepository.AddFeedbackAsync(
+            new Feedback
+            {
+                WordId = wordId,
+                FeedbackText = normalizedFeedback
+            },
+            cancellationToken);
+
+        return true;
     }
 }

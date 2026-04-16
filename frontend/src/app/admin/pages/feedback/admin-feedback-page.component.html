@@ -1,0 +1,108 @@
+<section class="feedback-page" dir="rtl">
+  <header class="toolbar">
+    <h2>بلاغات الأخطاء</h2>
+
+    <div class="toolbar-actions">
+      <button type="button" class="secondary" (click)="refresh()">تحديث</button>
+    </div>
+  </header>
+
+  <div class="filters">
+    <div class="search-box">
+      <input
+        type="text"
+        [formControl]="wordIdControl"
+        placeholder="فلترة برقم الكلمة..."
+        aria-label="فلترة البلاغات برقم الكلمة"
+      />
+    </div>
+
+    <div class="status-filter" role="group" aria-label="فلترة حسب حالة الحل">
+      <button type="button" [class.active]="resolvedFilter() === 'all'" (click)="setResolvedFilter('all')">
+        الكل
+      </button>
+      <button type="button" [class.active]="resolvedFilter() === 'unresolved'" (click)="setResolvedFilter('unresolved')">
+        غير محلولة
+      </button>
+      <button type="button" [class.active]="resolvedFilter() === 'resolved'" (click)="setResolvedFilter('resolved')">
+        محلولة
+      </button>
+    </div>
+
+    <button type="button" class="secondary sort-toggle" (click)="toggleSortDirection()">
+      الترتيب الزمني: {{ sortDirection() === 'desc' ? 'الأحدث أولاً' : 'الأقدم أولاً' }}
+    </button>
+  </div>
+
+  @if (errorMessage()) {
+    <p class="error" role="alert">{{ errorMessage() }}</p>
+  }
+
+  <div class="table-wrapper">
+    <table aria-label="جدول بلاغات الأخطاء">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>الكلمة</th>
+          <th>نص البلاغ</th>
+          <th>الوقت</th>
+          <th>الحالة</th>
+          <th>إجراءات</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        @if (isLoading()) {
+          <tr>
+            <td colspan="6" class="state-cell">جاري تحميل البيانات...</td>
+          </tr>
+        } @else {
+          @for (item of feedbackItems(); track item.id) {
+            <tr>
+              <td class="id-cell">{{ item.id }}</td>
+              <td>
+                <div class="word-cell">
+                  <strong>#{{ item.wordId }}</strong>
+                  <span>{{ item.wordHeadword }}</span>
+                </div>
+              </td>
+              <td class="feedback-text-cell">{{ item.feedbackText }}</td>
+              <td>{{ item.timestamp | date: 'yyyy/MM/dd HH:mm:ss' }}</td>
+              <td>
+                <span class="status-pill" [class.resolved]="item.resolved" [class.unresolved]="!item.resolved">
+                  {{ item.resolved ? 'محلولة' : 'غير محلولة' }}
+                </span>
+              </td>
+              <td>
+                <div class="row-actions">
+                  <button type="button" class="secondary" (click)="openWordEditor(item.wordId)">فتح الكلمة</button>
+                  <button
+                    type="button"
+                    [class.primary]="!item.resolved"
+                    [class.secondary]="item.resolved"
+                    (click)="toggleResolved(item.id, item.resolved)">
+                    {{ item.resolved ? 'إعادة الفتح' : 'تعيين كمحلولة' }}
+                  </button>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="6" class="state-cell">لا توجد بلاغات مطابقة للمعايير الحالية.</td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <footer class="pagination">
+    <p>إجمالي السجلات: {{ totalCount() }}</p>
+
+    <div class="pager-buttons">
+      <button type="button" (click)="previousPage()" [disabled]="!canGoPrevious()">السابق</button>
+      <span>صفحة {{ page() }} من {{ totalPages() || 1 }}</span>
+      <button type="button" (click)="nextPage()" [disabled]="!canGoNext()">التالي</button>
+    </div>
+  </footer>
+</section>

@@ -53,6 +53,16 @@ export class WordSearchService {
       );
   }
 
+  submitFeedback(wordId: number, feedbackText: string, captchaToken: string): Observable<{ submitted: boolean }> {
+    return this.http.post<{ submitted: boolean }>(
+      `${environment.apiBaseUrl}/api/words/${wordId}/feedback`,
+      {
+        feedbackText,
+        captchaToken
+      }
+    );
+  }
+
   private sortBySimilarity(results: WordSearchResult[]): WordSearchResult[] {
     return [...results].sort((first, second) => {
       const scoreDifference = second.similarityScore - first.similarityScore;

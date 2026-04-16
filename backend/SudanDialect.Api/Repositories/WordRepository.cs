@@ -83,4 +83,11 @@ public sealed class WordRepository : IWordRepository
             .Take(take)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<Feedback> AddFeedbackAsync(Feedback feedback, CancellationToken cancellationToken = default)
+    {
+        _dbContext.Feedback.Add(feedback);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        return feedback;
+    }
 }

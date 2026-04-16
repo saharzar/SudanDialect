@@ -14,6 +14,7 @@ public sealed class AppDbContext : IdentityDbContext<IdentityUser>
 
     public DbSet<Word> Words => Set<Word>();
     public DbSet<Audit> Audits => Set<Audit>();
+    public DbSet<Feedback> Feedback => Set<Feedback>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -113,6 +114,34 @@ public sealed class AppDbContext : IdentityDbContext<IdentityUser>
             entity.HasIndex(audit => new { audit.AdminUserId, audit.EditedAt });
             entity.HasIndex(audit => audit.EditedAt);
         });
+
+        modelBuilder.Entity<Feedback>(entity =>
+        {
+            entity.ToTable("feedback");
+
+            entity.HasKey(feedback => feedback.Id);
+
+            entity.Property(feedback => feedback.FeedbackText)
+                .HasColumnName("feedback_text")
+                .IsRequired();
+
+            entity.Property(feedback => feedback.Resolved)
+                .HasColumnName("resolved")
+                .HasDefaultValue(false)
+                .IsRequired();
+
+            entity.Property(feedback => feedback.Timestamp)
+                .HasColumnName("timestamp")
+                .HasColumnType("timestamp with time zone")
+                .IsRequired();
+
+            entity.HasOne(feedback => feedback.Word)
+                .WithMany()
+                .HasForeignKey(feedback => feedback.WordId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(feedback => new { feedback.WordId, feedback.Timestamp });
+        });
     }
 
     public override int SaveChanges()
@@ -158,6 +187,14 @@ public sealed class AppDbContext : IdentityDbContext<IdentityUser>
             if (entry.State == EntityState.Modified)
             {
                 entry.Entity.UpdatedAt = utcNow;
+            }
+        }
+
+        foreach (var entry in ChangeTracker.Entries<Feedback>())
+        {
+            if (entry.State == EntityState.Added && entry.Entity.Timestamp == default)
+            {
+                entry.Entity.Timestamp = utcNow;
             }
         }
     }

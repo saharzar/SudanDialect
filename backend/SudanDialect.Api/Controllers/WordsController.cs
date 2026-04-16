@@ -76,4 +76,35 @@ public sealed class WordsController : ControllerBase
             return BadRequest(new { error = exception.Message });
         }
     }
+
+    [HttpPost("{id:int}/feedback")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<object>> SubmitFeedback(
+        [FromRoute] int id,
+        [FromBody] SubmitWordFeedbackRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var submitted = await _wordService.SubmitFeedbackAsync(
+                id,
+                request.FeedbackText,
+                request.CaptchaToken,
+                HttpContext.Connection.RemoteIpAddress?.ToString(),
+                cancellationToken);
+
+            if (!submitted)
+            {
+                return NotFound();
+            }
+
+            return Ok(new { submitted = true });
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { error = exception.Message });
+        }
+    }
 }

@@ -17,4 +17,6 @@ public interface IWordRepository
         string normalizedQuery,
         int take,
         CancellationToken cancellationToken = default);
+
+    Task<Feedback> AddFeedbackAsync(Feedback feedback, CancellationToken cancellationToken = default);
 }

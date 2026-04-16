@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { adminAuthChildGuard, adminAuthGuard } from './guards/admin-auth.guard';
 import { AdminLayoutComponent } from './layout/admin-layout.component';
 import { AdminDashboardPageComponent } from './pages/dashboard/admin-dashboard-page.component';
+import { AdminFeedbackPageComponent } from './pages/feedback/admin-feedback-page.component';
 import { AdminAuditHistoryPageComponent } from './pages/history/admin-audit-history-page.component';
 import { AdminLoginPageComponent } from './pages/login/admin-login-page.component';
 import { AdminSettingsPageComponent } from './pages/settings/admin-settings-page.component';
@@ -31,6 +32,10 @@ export const adminRoutes: Routes = [
             {
                 path: 'history',
                 component: AdminAuditHistoryPageComponent
+            },
+            {
+                path: 'feedback',
+                component: AdminFeedbackPageComponent
             },
             {
                 path: 'words',

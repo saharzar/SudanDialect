@@ -1,10 +1,24 @@
 import { DOCUMENT } from '@angular/common';
-import { Component, Input, NgZone, OnChanges, SimpleChanges, inject, signal } from '@angular/core';
+import { Component, Input, NgZone, OnChanges, OnDestroy, SimpleChanges, inject, signal } from '@angular/core';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faFacebook, faWhatsapp, faXTwitter } from '@fortawesome/free-brands-svg-icons';
-import { faCopy, faShareNodes } from '@fortawesome/free-solid-svg-icons';
+import { faCopy, faShareNodes, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
+import { environment } from '../../../environments/environment';
 import { Word } from '../../models/word';
 import { WordSearchResult } from '../../models/word-search-result';
+import { WordSearchService } from '../../services/word-search.service';
+
+interface TurnstileApi {
+  render(container: string | HTMLElement, options: Record<string, unknown>): string;
+  reset(widgetId?: string): void;
+  remove?(widgetId: string): void;
+}
+
+declare global {
+  interface Window {
+    turnstile?: TurnstileApi;
+  }
+}
 
 type DefinitionPart =
   | { kind: 'text'; value: string }
@@ -62,36 +76,111 @@ const TAG_KEYS_SORTED = Object.keys(TAG_TOOLTIP_BY_KEY).sort((first, second) => 
   templateUrl: './word-card.component.html',
   styleUrl: './word-card.component.css'
 })
-export class WordCardComponent implements OnChanges {
+export class WordCardComponent implements OnChanges, OnDestroy {
   private readonly document = inject(DOCUMENT);
   private readonly ngZone = inject(NgZone);
+  private readonly wordSearchService = inject(WordSearchService);
 
   @Input({ required: true }) word!: WordSearchResult | Word;
 
   protected definitionParts: DefinitionPart[] = [];
   protected isSharePopupOpen = false;
+  protected isFeedbackPopupOpen = false;
   protected readonly copyFeedback = signal('');
+  protected readonly feedbackText = signal('');
+  protected readonly feedbackError = signal('');
+  protected readonly feedbackSuccess = signal('');
+  protected readonly isSubmittingFeedback = signal(false);
   protected readonly shareIcon = faShareNodes;
+  protected readonly reportIcon = faTriangleExclamation;
   protected readonly copyIcon = faCopy;
   protected readonly facebookIcon = faFacebook;
   protected readonly xTwitterIcon = faXTwitter;
   protected readonly whatsappIcon = faWhatsapp;
+  protected readonly feedbackCaptchaContainerId = `feedback-turnstile-${Math.random().toString(36).slice(2)}`;
+  protected readonly isTurnstileConfigured = Boolean(environment.turnstileSiteKey);
   private feedbackTimeout: number | undefined;
+  private turnstileLoadPromise: Promise<boolean> | null = null;
+  private turnstileWidgetId: string | null = null;
+  private turnstileToken: string | null = null;
+
+  ngOnDestroy(): void {
+    this.clearFeedback();
+    this.closeFeedbackPopup();
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['word']) {
       this.definitionParts = this.parseDefinition(this.word.definition);
       this.isSharePopupOpen = false;
+      this.isFeedbackPopupOpen = false;
       this.clearFeedback();
+      this.resetFeedbackForm();
     }
   }
 
   protected openSharePopup(): void {
+    this.closeFeedbackPopup();
     this.isSharePopupOpen = true;
   }
 
   protected closeSharePopup(): void {
     this.isSharePopupOpen = false;
+  }
+
+  protected openFeedbackPopup(): void {
+    this.closeSharePopup();
+    this.resetFeedbackForm();
+    this.isFeedbackPopupOpen = true;
+    void this.initializeTurnstileWidget();
+  }
+
+  protected closeFeedbackPopup(): void {
+    this.isFeedbackPopupOpen = false;
+    this.turnstileToken = null;
+
+    const turnstile = this.document.defaultView?.turnstile;
+    if (turnstile && this.turnstileWidgetId !== null && turnstile.remove) {
+      turnstile.remove(this.turnstileWidgetId);
+      this.turnstileWidgetId = null;
+    }
+  }
+
+  protected onFeedbackInput(event: Event): void {
+    const target = event.target as HTMLTextAreaElement;
+    this.feedbackText.set(target.value);
+  }
+
+  protected submitFeedback(): void {
+    this.feedbackError.set('');
+    this.feedbackSuccess.set('');
+
+    const normalizedText = this.feedbackText().trim();
+    if (!normalizedText) {
+      this.feedbackError.set('يرجى كتابة تفاصيل الخطأ.');
+      return;
+    }
+
+    if (!this.turnstileToken) {
+      this.feedbackError.set('يرجى إكمال التحقق الأمني أولاً.');
+      return;
+    }
+
+    this.isSubmittingFeedback.set(true);
+
+    this.wordSearchService.submitFeedback(this.word.id, normalizedText, this.turnstileToken).subscribe({
+      next: () => {
+        this.feedbackSuccess.set('تم إرسال البلاغ بنجاح. شكراً لمساعدتك.');
+        this.feedbackText.set('');
+        this.resetTurnstileWidget();
+        this.isSubmittingFeedback.set(false);
+      },
+      error: (error: unknown) => {
+        this.feedbackError.set(this.extractFeedbackErrorMessage(error));
+        this.resetTurnstileWidget();
+        this.isSubmittingFeedback.set(false);
+      }
+    });
   }
 
   protected get shareUrl(): string {
@@ -292,5 +381,114 @@ export class WordCardComponent implements OnChanges {
     textarea.select();
     this.document.execCommand('copy');
     this.document.body.removeChild(textarea);
+  }
+
+  private async initializeTurnstileWidget(): Promise<void> {
+    if (!this.isFeedbackPopupOpen) {
+      return;
+    }
+
+    if (!environment.turnstileSiteKey) {
+      this.feedbackError.set('خدمة التحقق غير مفعلة حالياً.');
+      return;
+    }
+
+    const loaded = await this.ensureTurnstileLoaded();
+    if (!loaded || !this.isFeedbackPopupOpen) {
+      this.feedbackError.set('تعذر تحميل التحقق الأمني. حاول مرة أخرى.');
+      return;
+    }
+
+    const turnstile = this.document.defaultView?.turnstile;
+    const container = this.document.getElementById(this.feedbackCaptchaContainerId);
+    if (!turnstile || !container) {
+      this.feedbackError.set('تعذر تحميل التحقق الأمني.');
+      return;
+    }
+
+    container.innerHTML = '';
+
+    this.turnstileWidgetId = turnstile.render(container, {
+      sitekey: environment.turnstileSiteKey,
+      callback: (token: string) => {
+        this.ngZone.run(() => {
+          this.turnstileToken = token;
+          this.feedbackError.set('');
+        });
+      },
+      'expired-callback': () => {
+        this.ngZone.run(() => {
+          this.turnstileToken = null;
+        });
+      },
+      'error-callback': () => {
+        this.ngZone.run(() => {
+          this.turnstileToken = null;
+          this.feedbackError.set('فشل التحقق الأمني. أعد المحاولة.');
+        });
+      }
+    });
+  }
+
+  private ensureTurnstileLoaded(): Promise<boolean> {
+    if (this.document.defaultView?.turnstile) {
+      return Promise.resolve(true);
+    }
+
+    if (this.turnstileLoadPromise) {
+      return this.turnstileLoadPromise;
+    }
+
+    this.turnstileLoadPromise = new Promise<boolean>((resolve) => {
+      const scriptId = 'cloudflare-turnstile-script';
+      const existingScript = this.document.getElementById(scriptId) as HTMLScriptElement | null;
+
+      const resolveFromWindow = (): void => resolve(Boolean(this.document.defaultView?.turnstile));
+
+      if (existingScript) {
+        existingScript.addEventListener('load', resolveFromWindow, { once: true });
+        existingScript.addEventListener('error', () => resolve(false), { once: true });
+        return;
+      }
+
+      const script = this.document.createElement('script');
+      script.id = scriptId;
+      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+      script.async = true;
+      script.defer = true;
+      script.onload = resolveFromWindow;
+      script.onerror = () => resolve(false);
+      this.document.head.appendChild(script);
+    });
+
+    return this.turnstileLoadPromise;
+  }
+
+  private resetTurnstileWidget(): void {
+    this.turnstileToken = null;
+    if (this.turnstileWidgetId === null) {
+      return;
+    }
+
+    this.document.defaultView?.turnstile?.reset(this.turnstileWidgetId);
+  }
+
+  private resetFeedbackForm(): void {
+    this.feedbackText.set('');
+    this.feedbackError.set('');
+    this.feedbackSuccess.set('');
+    this.isSubmittingFeedback.set(false);
+    this.turnstileToken = null;
+  }
+
+  private extractFeedbackErrorMessage(error: unknown): string {
+    if (typeof error === 'object' && error !== null && 'error' in error) {
+      const payload = (error as { error?: { error?: string } }).error;
+      if (payload && typeof payload.error === 'string' && payload.error.trim()) {
+        return payload.error;
+      }
+    }
+
+    return 'تعذر إرسال البلاغ حالياً. حاول مرة أخرى.';
   }
 }
