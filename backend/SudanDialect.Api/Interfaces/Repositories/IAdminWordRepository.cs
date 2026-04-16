@@ -28,9 +28,25 @@ public interface IAdminWordRepository
         string definition,
         string normalizedDefinition,
         bool isActive,
+        string adminUserId,
+        string? clientIp,
+        string? userAgent,
         CancellationToken cancellationToken = default);
 
-    Task<bool> SetInactiveAsync(int id, CancellationToken cancellationToken = default);
+    Task<bool> SetInactiveAsync(
+        int id,
+        string adminUserId,
+        string? clientIp,
+        string? userAgent,
+        CancellationToken cancellationToken = default);
+
+    Task<(IReadOnlyList<AdminWordEditAuditEntryDto> Items, int TotalCount)> GetAuditPagedAsync(
+        int? wordId,
+        string? actionType,
+        bool sortDescending,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default);
 
     Task<AdminDashboardMetricsDto> GetMetricsAsync(CancellationToken cancellationToken = default);
 }

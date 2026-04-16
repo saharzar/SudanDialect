@@ -11,6 +11,7 @@ namespace SudanDialect.Api.Services;
 public sealed class AdminWordService : IAdminWordService
 {
     private const int MaxPageSize = 200;
+    private const int MaxAuditPageSize = 200;
     private const int MaxFilterLength = 200;
 
     private static readonly HashSet<string> AllowedSortFields = ["id", "headword", "createdat", "updatedat", "isactive"];
@@ -132,11 +133,19 @@ public sealed class AdminWordService : IAdminWordService
     public async Task<Word?> UpdateAsync(
         int id,
         AdminUpdateWordRequestDto request,
+        string adminUserId,
+        string? clientIp,
+        string? userAgent,
         CancellationToken cancellationToken = default)
     {
         if (id <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(id), "Word id must be a positive integer.");
+        }
+
+        if (string.IsNullOrWhiteSpace(adminUserId))
+        {
+            throw new ArgumentException("Admin user id is required.", nameof(adminUserId));
         }
 
         var headword = ValidateArabicText(request.Headword, nameof(request.Headword), 200);
@@ -149,17 +158,92 @@ public sealed class AdminWordService : IAdminWordService
             definition,
             ArabicTextNormalizer.Normalize(definition),
             request.IsActive,
+            adminUserId,
+            clientIp,
+            userAgent,
             cancellationToken);
     }
 
-    public async Task<bool> DeactivateAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<bool> DeactivateAsync(
+        int id,
+        string adminUserId,
+        string? clientIp,
+        string? userAgent,
+        CancellationToken cancellationToken = default)
     {
         if (id <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(id), "Word id must be a positive integer.");
         }
 
-        return await _adminWordRepository.SetInactiveAsync(id, cancellationToken);
+        if (string.IsNullOrWhiteSpace(adminUserId))
+        {
+            throw new ArgumentException("Admin user id is required.", nameof(adminUserId));
+        }
+
+        return await _adminWordRepository.SetInactiveAsync(id, adminUserId, clientIp, userAgent, cancellationToken);
+    }
+
+    public Task<AdminWordEditAuditPageDto> GetAuditPageAsync(
+        AdminWordEditAuditQueryDto query,
+        CancellationToken cancellationToken = default)
+    {
+        return GetAuditPageInternalAsync(null, query, cancellationToken);
+    }
+
+    public Task<AdminWordEditAuditPageDto> GetAuditPageByWordIdAsync(
+        int wordId,
+        AdminWordEditAuditQueryDto query,
+        CancellationToken cancellationToken = default)
+    {
+        if (wordId <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(wordId), "Word id must be a positive integer.");
+        }
+
+        return GetAuditPageInternalAsync(wordId, query, cancellationToken);
+    }
+
+    private async Task<AdminWordEditAuditPageDto> GetAuditPageInternalAsync(
+        int? wordId,
+        AdminWordEditAuditQueryDto query,
+        CancellationToken cancellationToken)
+    {
+        var page = query.Page <= 0 ? 1 : query.Page;
+        var pageSize = query.PageSize <= 0 ? 20 : Math.Min(query.PageSize, MaxAuditPageSize);
+        var actionType = NormalizeAuditActionType(query.ActionType);
+        var sortDescending = NormalizeSortDirection(query.SortDirection) == "desc";
+
+        var (items, totalCount) = await _adminWordRepository.GetAuditPagedAsync(
+            wordId,
+            actionType,
+            sortDescending,
+            page,
+            pageSize,
+            cancellationToken);
+
+        var totalPages = totalCount == 0 ? 0 : (int)Math.Ceiling(totalCount / (double)pageSize);
+        var boundedPage = totalPages == 0 ? 1 : Math.Min(page, totalPages);
+
+        if (totalPages > 0 && page > totalPages)
+        {
+            (items, _) = await _adminWordRepository.GetAuditPagedAsync(
+                wordId,
+                actionType,
+                sortDescending,
+                boundedPage,
+                pageSize,
+                cancellationToken);
+        }
+
+        return new AdminWordEditAuditPageDto
+        {
+            Items = items,
+            Page = boundedPage,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            TotalPages = totalPages
+        };
     }
 
     private static string ValidateArabicText(string? input, string parameterName, int maxLength)
@@ -214,5 +298,21 @@ public sealed class AdminWordService : IAdminWordService
 
         var normalized = searchBy.Trim().ToLowerInvariant();
         return AllowedSearchFields.Contains(normalized) ? normalized : "headword";
+    }
+
+    private static string? NormalizeAuditActionType(string? actionType)
+    {
+        if (string.IsNullOrWhiteSpace(actionType))
+        {
+            return null;
+        }
+
+        var normalized = actionType.Trim().ToLowerInvariant();
+        if (!AdminWordEditActionTypes.Allowed.Contains(normalized))
+        {
+            throw new ArgumentException("Unsupported actionType value.", nameof(actionType));
+        }
+
+        return normalized;
     }
 }

@@ -3,6 +3,10 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
+  AdminAuditPage,
+  AdminAuditQuery,
+} from '../models/admin-audit.model';
+import {
   AdminCreateWordRequest,
   AdminDashboardMetrics,
   AdminUpdateWordRequest,
@@ -53,5 +57,28 @@ export class AdminWordService {
 
   deactivateWord(id: number): Observable<{ id: number; deactivated: boolean }> {
     return this.http.delete<{ id: number; deactivated: boolean }>(`${this.adminApiBaseUrl}/${id}`);
+  }
+
+  getAuditHistory(query: AdminAuditQuery): Observable<AdminAuditPage> {
+    const params = this.buildAuditQueryParams(query);
+    return this.http.get<AdminAuditPage>(`${this.adminApiBaseUrl}/audit`, { params });
+  }
+
+  getAuditHistoryByWordId(wordId: number, query: AdminAuditQuery): Observable<AdminAuditPage> {
+    const params = this.buildAuditQueryParams(query);
+    return this.http.get<AdminAuditPage>(`${this.adminApiBaseUrl}/${wordId}/audit`, { params });
+  }
+
+  private buildAuditQueryParams(query: AdminAuditQuery): HttpParams {
+    let params = new HttpParams()
+      .set('page', query.page)
+      .set('pageSize', query.pageSize)
+      .set('sortDirection', query.sortDirection);
+
+    if (query.actionType) {
+      params = params.set('actionType', query.actionType);
+    }
+
+    return params;
   }
 }

@@ -166,6 +166,10 @@ export class WordListComponent {
     void this.router.navigate(['/admin/words', id, 'edit']);
   }
 
+  protected viewWordHistory(id: number): void {
+    void this.router.navigate(['/admin/words', id, 'history']);
+  }
+
   protected deactivateWord(word: AdminWord): void {
     if (!word.isActive) {
       this.toastService.showError(`الكلمة [${word.id}] غير نشطة بالفعل.`);

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using SudanDialect.Api.Dtos;
 using SudanDialect.Api.Dtos.Admin;
 using SudanDialect.Api.Interfaces.Services;
@@ -25,6 +26,24 @@ public sealed class AdminWordsController : ControllerBase
     {
         var metrics = await _adminWordService.GetMetricsAsync(cancellationToken);
         return Ok(metrics);
+    }
+
+    [HttpGet("audit")]
+    [ProducesResponseType(typeof(AdminWordEditAuditPageDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<AdminWordEditAuditPageDto>> GetAuditPage(
+        [FromQuery] AdminWordEditAuditQueryDto request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var page = await _adminWordService.GetAuditPageAsync(request, cancellationToken);
+            return Ok(page);
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { error = exception.Message });
+        }
     }
 
     [HttpGet]
@@ -69,6 +88,25 @@ public sealed class AdminWordsController : ControllerBase
         }
     }
 
+    [HttpGet("{id:int}/audit")]
+    [ProducesResponseType(typeof(AdminWordEditAuditPageDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<AdminWordEditAuditPageDto>> GetAuditPageByWordId(
+        [FromRoute] int id,
+        [FromQuery] AdminWordEditAuditQueryDto request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var page = await _adminWordService.GetAuditPageByWordIdAsync(id, request, cancellationToken);
+            return Ok(page);
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { error = exception.Message });
+        }
+    }
+
     [HttpPost]
     [ProducesResponseType(typeof(Word), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -96,9 +134,22 @@ public sealed class AdminWordsController : ControllerBase
         [FromBody] AdminUpdateWordRequestDto request,
         CancellationToken cancellationToken)
     {
+        var adminUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(adminUserId))
+        {
+            return Unauthorized(new { error = "Authenticated user id is missing." });
+        }
+
         try
         {
-            var updatedWord = await _adminWordService.UpdateAsync(id, request, cancellationToken);
+            var updatedWord = await _adminWordService.UpdateAsync(
+                id,
+                request,
+                adminUserId,
+                HttpContext.Connection.RemoteIpAddress?.ToString(),
+                Request.Headers.UserAgent.ToString(),
+                cancellationToken);
+
             if (updatedWord is null)
             {
                 return NotFound();
@@ -118,9 +169,21 @@ public sealed class AdminWordsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<object>> Deactivate([FromRoute] int id, CancellationToken cancellationToken)
     {
+        var adminUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(adminUserId))
+        {
+            return Unauthorized(new { error = "Authenticated user id is missing." });
+        }
+
         try
         {
-            var deactivated = await _adminWordService.DeactivateAsync(id, cancellationToken);
+            var deactivated = await _adminWordService.DeactivateAsync(
+                id,
+                adminUserId,
+                HttpContext.Connection.RemoteIpAddress?.ToString(),
+                Request.Headers.UserAgent.ToString(),
+                cancellationToken);
+
             if (!deactivated)
             {
                 return NotFound();

@@ -1,0 +1,166 @@
+<section class="audit-page" dir="rtl">
+  <header class="toolbar">
+    <h2>{{ pageTitle() }}</h2>
+
+    <div class="toolbar-actions">
+      <button type="button" class="secondary" (click)="refresh()">تحديث</button>
+      @if (wordId()) {
+        <button type="button" class="secondary" (click)="openGlobalHistory()">سجل كل الكلمات</button>
+      }
+    </div>
+  </header>
+
+  <div class="filters">
+    <label class="action-filter" for="actionType">نوع التعديل</label>
+    <select id="actionType" [formControl]="actionTypeControl" aria-label="فلترة حسب نوع التعديل">
+      <option value="all">الكل</option>
+      <option value="update">تعديل</option>
+      <option value="deactivate">تعطيل</option>
+      <option value="reactivate">إعادة تفعيل</option>
+    </select>
+
+    <button type="button" class="secondary sort-toggle" (click)="toggleSortDirection()">
+      الترتيب الزمني: {{ sortDirection() === 'desc' ? 'الأحدث أولاً' : 'الأقدم أولاً' }}
+    </button>
+  </div>
+
+  @if (errorMessage()) {
+    <p class="error" role="alert">{{ errorMessage() }}</p>
+  }
+
+  <div class="table-wrapper">
+    <table aria-label="جدول سجل التعديلات">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>وقت التعديل</th>
+          <th>النوع</th>
+          <th>المستخدم</th>
+          <th>الكلمة</th>
+          <th>الحالة</th>
+          <th>إجراءات</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        @if (isLoading()) {
+          <tr>
+            <td colspan="7" class="state-cell">جاري تحميل البيانات...</td>
+          </tr>
+        } @else {
+          @for (item of items(); track item.id) {
+            <tr>
+              <td class="id-cell">{{ item.id }}</td>
+              <td>{{ item.editedAt | date: 'yyyy/MM/dd HH:mm:ss' }}</td>
+              <td>
+                <span class="action-chip" [class.deactivate]="item.actionType === 'deactivate'" [class.reactivate]="item.actionType === 'reactivate'">
+                  {{ actionTypeLabel(item.actionType) }}
+                </span>
+              </td>
+              <td>
+                <div class="identity-cell">
+                  <strong>{{ item.adminDisplayName }}</strong>
+                  <span>{{ item.adminUserId }}</span>
+                </div>
+              </td>
+              <td>
+                <div class="word-cell">
+                  <strong>#{{ item.wordId }}</strong>
+                  <span>{{ item.wordHeadword }}</span>
+                </div>
+              </td>
+              <td>{{ activeStatusLabel(item) }}</td>
+              <td>
+                <div class="row-actions">
+                  <button type="button" class="secondary" (click)="openChangesDialog(item)">عرض التغييرات</button>
+                  <button type="button" class="secondary" (click)="openWordHistory(item.wordId)">سجل الكلمة</button>
+                  <button type="button" class="secondary" (click)="openWordEditor(item.wordId)">فتح التعديل</button>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="7" class="state-cell">لا توجد سجلات تعديل مطابقة للمعايير الحالية.</td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <footer class="pagination">
+    <p>إجمالي السجلات: {{ totalCount() }}</p>
+
+    <div class="pager-buttons">
+      <button type="button" (click)="previousPage()" [disabled]="!canGoPrevious()">السابق</button>
+      <span>صفحة {{ page() }} من {{ totalPages() || 1 }}</span>
+      <button type="button" (click)="nextPage()" [disabled]="!canGoNext()">التالي</button>
+    </div>
+  </footer>
+</section>
+
+@if (isDiffDialogOpen() && selectedEntry(); as selected) {
+  <div class="diff-overlay" role="presentation" (click)="closeChangesDialog()">
+    <section
+      class="diff-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="diffDialogTitle"
+      (click)="preventDialogClose($event)">
+      <header class="diff-header">
+        <div>
+          <h3 id="diffDialogTitle">تفاصيل التغييرات</h3>
+          <p>
+            كلمة #{{ selected.wordId }} - سجل #{{ selected.id }}
+          </p>
+        </div>
+
+        <button type="button" class="secondary" (click)="closeChangesDialog()">إغلاق</button>
+      </header>
+
+      <div class="diff-meta">
+        <span>المستخدم: {{ selected.adminDisplayName }}</span>
+        <span>النوع: {{ actionTypeLabel(selected.actionType) }}</span>
+        <span>الحالة: {{ activeStatusLabel(selected) }}</span>
+      </div>
+
+      <section class="diff-section">
+        <h4>تغيير الكلمة</h4>
+        <div class="diff-block" aria-label="فرق الكلمة">
+          @for (line of headwordDiffRows(); track $index) {
+            <div class="diff-line" [class.removed]="line.kind === 'removed'" [class.added]="line.kind === 'added'">
+              <span class="line-prefix">{{ diffLinePrefix(line.kind) }}</span>
+              <span class="line-content">
+                @for (segment of line.segments; track $index) {
+                  <span
+                    class="line-segment"
+                    [class.removed-char]="segment.kind === 'removed'"
+                    [class.added-char]="segment.kind === 'added'">{{ segment.content || ' ' }}</span>
+                }
+              </span>
+            </div>
+          }
+        </div>
+      </section>
+
+      <section class="diff-section">
+        <h4>تغيير التعريف</h4>
+        <div class="diff-block" aria-label="فرق التعريف">
+          @for (line of definitionDiffRows(); track $index) {
+            <div class="diff-line" [class.removed]="line.kind === 'removed'" [class.added]="line.kind === 'added'">
+              <span class="line-prefix">{{ diffLinePrefix(line.kind) }}</span>
+              <span class="line-content">
+                @for (segment of line.segments; track $index) {
+                  <span
+                    class="line-segment"
+                    [class.removed-char]="segment.kind === 'removed'"
+                    [class.added-char]="segment.kind === 'added'">{{ segment.content || ' ' }}</span>
+                }
+              </span>
+            </div>
+          }
+        </div>
+      </section>
+    </section>
+  </div>
+}

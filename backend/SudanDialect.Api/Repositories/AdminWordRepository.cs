@@ -4,6 +4,7 @@ using SudanDialect.Api.Data;
 using SudanDialect.Api.Dtos.Admin;
 using SudanDialect.Api.Interfaces.Repositories;
 using SudanDialect.Api.Models;
+using SudanDialect.Api.Utilities;
 
 namespace SudanDialect.Api.Repositories;
 
@@ -106,6 +107,9 @@ public sealed class AdminWordRepository : IAdminWordRepository
         string definition,
         string normalizedDefinition,
         bool isActive,
+        string adminUserId,
+        string? clientIp,
+        string? userAgent,
         CancellationToken cancellationToken = default)
     {
         var word = await _dbContext.Words.SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
@@ -114,17 +118,44 @@ public sealed class AdminWordRepository : IAdminWordRepository
             return null;
         }
 
+        var oldHeadword = word.Headword;
+        var oldNormalizedHeadword = word.NormalizedHeadword;
+        var oldDefinition = word.Definition;
+        var oldNormalizedDefinition = word.NormalizedDefinition;
+        var oldIsActive = word.IsActive;
+
         word.Headword = headword;
         word.NormalizedHeadword = normalizedHeadword;
         word.Definition = definition;
         word.NormalizedDefinition = normalizedDefinition;
         word.IsActive = isActive;
 
+        _dbContext.Audits.Add(CreateAuditEntry(
+            word,
+            adminUserId,
+            oldHeadword,
+            headword,
+            oldDefinition,
+            definition,
+            oldIsActive,
+            isActive,
+            oldNormalizedHeadword,
+            normalizedHeadword,
+            oldNormalizedDefinition,
+            normalizedDefinition,
+            clientIp,
+            userAgent));
+
         await _dbContext.SaveChangesAsync(cancellationToken);
         return word;
     }
 
-    public async Task<bool> SetInactiveAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<bool> SetInactiveAsync(
+        int id,
+        string adminUserId,
+        string? clientIp,
+        string? userAgent,
+        CancellationToken cancellationToken = default)
     {
         var word = await _dbContext.Words.SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
         if (word is null)
@@ -137,9 +168,96 @@ public sealed class AdminWordRepository : IAdminWordRepository
             return true;
         }
 
+        var oldHeadword = word.Headword;
+        var oldNormalizedHeadword = word.NormalizedHeadword;
+        var oldDefinition = word.Definition;
+        var oldNormalizedDefinition = word.NormalizedDefinition;
+        var oldIsActive = word.IsActive;
+
         word.IsActive = false;
+
+        _dbContext.Audits.Add(CreateAuditEntry(
+            word,
+            adminUserId,
+            oldHeadword,
+            oldHeadword,
+            oldDefinition,
+            oldDefinition,
+            oldIsActive,
+            false,
+            oldNormalizedHeadword,
+            oldNormalizedHeadword,
+            oldNormalizedDefinition,
+            oldNormalizedDefinition,
+            clientIp,
+            userAgent));
+
         await _dbContext.SaveChangesAsync(cancellationToken);
         return true;
+    }
+
+    public async Task<(IReadOnlyList<AdminWordEditAuditEntryDto> Items, int TotalCount)> GetAuditPagedAsync(
+        int? wordId,
+        string? actionType,
+        bool sortDescending,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _dbContext.Audits
+            .AsNoTracking();
+
+        if (wordId.HasValue)
+        {
+            query = query.Where(audit => audit.WordId == wordId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(actionType))
+        {
+            query = query.Where(audit => audit.ActionType == actionType);
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var sortedQuery = sortDescending
+            ? query.OrderByDescending(audit => audit.EditedAt).ThenByDescending(audit => audit.Id)
+            : query.OrderBy(audit => audit.EditedAt).ThenBy(audit => audit.Id);
+
+        var skip = (page - 1) * pageSize;
+
+        var items = await (
+            from audit in sortedQuery.Skip(skip).Take(pageSize)
+            join user in _dbContext.Users.AsNoTracking() on audit.AdminUserId equals user.Id into users
+            from user in users.DefaultIfEmpty()
+            select new AdminWordEditAuditEntryDto
+            {
+                Id = audit.Id,
+                WordId = audit.WordId,
+                WordHeadword = audit.Word.Headword,
+                AdminUserId = audit.AdminUserId,
+                AdminDisplayName = user != null && !string.IsNullOrEmpty(user.UserName)
+                    ? user.UserName!
+                    : user != null && !string.IsNullOrEmpty(user.Email)
+                        ? user.Email!
+                        : audit.AdminUserId,
+                EditedAt = audit.EditedAt,
+                ActionType = audit.ActionType,
+                OldHeadword = audit.OldHeadword,
+                NewHeadword = audit.NewHeadword,
+                OldDefinition = audit.OldDefinition,
+                NewDefinition = audit.NewDefinition,
+                OldIsActive = audit.OldIsActive,
+                NewIsActive = audit.NewIsActive,
+                OldNormalizedHeadword = audit.OldNormalizedHeadword,
+                NewNormalizedHeadword = audit.NewNormalizedHeadword,
+                OldNormalizedDefinition = audit.OldNormalizedDefinition,
+                NewNormalizedDefinition = audit.NewNormalizedDefinition,
+                ClientIp = audit.ClientIp,
+                UserAgent = audit.UserAgent
+            })
+            .ToListAsync(cancellationToken);
+
+        return (items, totalCount);
     }
 
     public async Task<AdminDashboardMetricsDto> GetMetricsAsync(CancellationToken cancellationToken = default)
@@ -174,5 +292,58 @@ public sealed class AdminWordRepository : IAdminWordRepository
             (_, true) => query.OrderByDescending(word => word.UpdatedAt),
             (_, false) => query.OrderBy(word => word.UpdatedAt)
         };
+    }
+
+    private static Audit CreateAuditEntry(
+        Word word,
+        string adminUserId,
+        string oldHeadword,
+        string newHeadword,
+        string oldDefinition,
+        string newDefinition,
+        bool oldIsActive,
+        bool newIsActive,
+        string oldNormalizedHeadword,
+        string newNormalizedHeadword,
+        string oldNormalizedDefinition,
+        string newNormalizedDefinition,
+        string? clientIp,
+        string? userAgent)
+    {
+        return new Audit
+        {
+            WordId = word.Id,
+            AdminUserId = adminUserId,
+            EditedAt = DateTime.UtcNow,
+            ActionType = AdminWordEditActionTypes.Resolve(oldIsActive, newIsActive),
+            OldHeadword = oldHeadword,
+            NewHeadword = newHeadword,
+            OldDefinition = oldDefinition,
+            NewDefinition = newDefinition,
+            OldIsActive = oldIsActive,
+            NewIsActive = newIsActive,
+            OldNormalizedHeadword = oldNormalizedHeadword,
+            NewNormalizedHeadword = newNormalizedHeadword,
+            OldNormalizedDefinition = oldNormalizedDefinition,
+            NewNormalizedDefinition = newNormalizedDefinition,
+            ClientIp = SanitizeOptionalValue(clientIp, 100),
+            UserAgent = SanitizeOptionalValue(userAgent, 512)
+        };
+    }
+
+    private static string? SanitizeOptionalValue(string? value, int maxLength)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var trimmed = value.Trim();
+        if (trimmed.Length <= maxLength)
+        {
+            return trimmed;
+        }
+
+        return trimmed[..maxLength];
     }
 }

@@ -13,6 +13,7 @@ public sealed class AppDbContext : IdentityDbContext<IdentityUser>
     }
 
     public DbSet<Word> Words => Set<Word>();
+    public DbSet<Audit> Audits => Set<Audit>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -56,6 +57,61 @@ public sealed class AppDbContext : IdentityDbContext<IdentityUser>
             entity.HasIndex(word => word.NormalizedDefinition)
                 .HasMethod("gin")
                 .HasOperators("gin_trgm_ops");
+        });
+
+        modelBuilder.Entity<Audit>(entity =>
+        {
+            entity.HasKey(audit => audit.Id);
+
+            entity.Property(audit => audit.AdminUserId)
+                .IsRequired();
+
+            entity.Property(audit => audit.EditedAt)
+                .HasColumnType("timestamp with time zone")
+                .IsRequired();
+
+            entity.Property(audit => audit.ActionType)
+                .HasMaxLength(32)
+                .IsRequired();
+
+            entity.Property(audit => audit.OldHeadword)
+                .IsRequired();
+
+            entity.Property(audit => audit.NewHeadword)
+                .IsRequired();
+
+            entity.Property(audit => audit.OldDefinition)
+                .IsRequired();
+
+            entity.Property(audit => audit.NewDefinition)
+                .IsRequired();
+
+            entity.Property(audit => audit.OldNormalizedHeadword)
+                .IsRequired();
+
+            entity.Property(audit => audit.NewNormalizedHeadword)
+                .IsRequired();
+
+            entity.Property(audit => audit.OldNormalizedDefinition)
+                .IsRequired();
+
+            entity.Property(audit => audit.NewNormalizedDefinition)
+                .IsRequired();
+
+            entity.Property(audit => audit.ClientIp)
+                .HasMaxLength(100);
+
+            entity.Property(audit => audit.UserAgent)
+                .HasMaxLength(512);
+
+            entity.HasOne(audit => audit.Word)
+                .WithMany()
+                .HasForeignKey(audit => audit.WordId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(audit => new { audit.WordId, audit.EditedAt });
+            entity.HasIndex(audit => new { audit.AdminUserId, audit.EditedAt });
+            entity.HasIndex(audit => audit.EditedAt);
         });
     }
 
