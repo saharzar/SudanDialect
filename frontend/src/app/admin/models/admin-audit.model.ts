@@ -1,4 +1,4 @@
-export type AdminAuditActionType = 'update' | 'deactivate' | 'reactivate';
+export type AdminAuditActionType = 'create' | 'update' | 'deactivate' | 'reactivate';
 
 export interface AdminAuditEntry {
   id: number;

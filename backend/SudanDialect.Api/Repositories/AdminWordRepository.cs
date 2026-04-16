@@ -93,10 +93,37 @@ public sealed class AdminWordRepository : IAdminWordRepository
             .SingleOrDefaultAsync(word => word.Id == id, cancellationToken);
     }
 
-    public async Task<Word> AddAsync(Word word, CancellationToken cancellationToken = default)
+    public async Task<Word> AddAsync(
+        Word word,
+        string adminUserId,
+        string? clientIp,
+        string? userAgent,
+        CancellationToken cancellationToken = default)
     {
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+
         _dbContext.Words.Add(word);
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        _dbContext.Audits.Add(CreateAuditEntry(
+            word,
+            adminUserId,
+            string.Empty,
+            word.Headword,
+            string.Empty,
+            word.Definition,
+            false,
+            word.IsActive,
+            string.Empty,
+            word.NormalizedHeadword,
+            string.Empty,
+            word.NormalizedDefinition,
+            clientIp,
+            userAgent,
+            AdminWordEditActionTypes.Create));
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return word;
     }
 
@@ -308,14 +335,15 @@ public sealed class AdminWordRepository : IAdminWordRepository
         string oldNormalizedDefinition,
         string newNormalizedDefinition,
         string? clientIp,
-        string? userAgent)
+        string? userAgent,
+        string? actionTypeOverride = null)
     {
         return new Audit
         {
             WordId = word.Id,
             AdminUserId = adminUserId,
             EditedAt = DateTime.UtcNow,
-            ActionType = AdminWordEditActionTypes.Resolve(oldIsActive, newIsActive),
+            ActionType = actionTypeOverride ?? AdminWordEditActionTypes.Resolve(oldIsActive, newIsActive),
             OldHeadword = oldHeadword,
             NewHeadword = newHeadword,
             OldDefinition = oldDefinition,

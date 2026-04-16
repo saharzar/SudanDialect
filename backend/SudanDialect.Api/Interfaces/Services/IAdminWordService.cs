@@ -12,7 +12,12 @@ public interface IAdminWordService
 
     Task<Word?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
 
-    Task<Word> CreateAsync(AdminCreateWordRequestDto request, CancellationToken cancellationToken = default);
+    Task<Word> CreateAsync(
+        AdminCreateWordRequestDto request,
+        string adminUserId,
+        string? clientIp,
+        string? userAgent,
+        CancellationToken cancellationToken = default);
 
     Task<Word?> UpdateAsync(
         int id,

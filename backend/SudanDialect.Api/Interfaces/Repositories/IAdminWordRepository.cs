@@ -19,7 +19,12 @@ public interface IAdminWordRepository
 
     Task<Word?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
 
-    Task<Word> AddAsync(Word word, CancellationToken cancellationToken = default);
+    Task<Word> AddAsync(
+        Word word,
+        string adminUserId,
+        string? clientIp,
+        string? userAgent,
+        CancellationToken cancellationToken = default);
 
     Task<Word?> UpdateAsync(
         int id,

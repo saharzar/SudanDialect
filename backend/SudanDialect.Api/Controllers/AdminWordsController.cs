@@ -114,9 +114,21 @@ public sealed class AdminWordsController : ControllerBase
         [FromBody] AdminCreateWordRequestDto request,
         CancellationToken cancellationToken)
     {
+        var adminUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(adminUserId))
+        {
+            return Unauthorized(new { error = "Authenticated user id is missing." });
+        }
+
         try
         {
-            var createdWord = await _adminWordService.CreateAsync(request, cancellationToken);
+            var createdWord = await _adminWordService.CreateAsync(
+                request,
+                adminUserId,
+                HttpContext.Connection.RemoteIpAddress?.ToString(),
+                Request.Headers.UserAgent.ToString(),
+                cancellationToken);
+
             return CreatedAtAction(nameof(GetById), new { id = createdWord.Id }, createdWord);
         }
         catch (ArgumentException exception)

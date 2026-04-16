@@ -113,8 +113,16 @@ public sealed class AdminWordService : IAdminWordService
 
     public async Task<Word> CreateAsync(
         AdminCreateWordRequestDto request,
+        string adminUserId,
+        string? clientIp,
+        string? userAgent,
         CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(adminUserId))
+        {
+            throw new ArgumentException("Admin user id is required.", nameof(adminUserId));
+        }
+
         var headword = ValidateArabicText(request.Headword, nameof(request.Headword), 200);
         var definition = ValidateArabicText(request.Definition, nameof(request.Definition), 4000);
 
@@ -127,7 +135,7 @@ public sealed class AdminWordService : IAdminWordService
             IsActive = request.IsActive
         };
 
-        return await _adminWordRepository.AddAsync(word, cancellationToken);
+        return await _adminWordRepository.AddAsync(word, adminUserId, clientIp, userAgent, cancellationToken);
     }
 
     public async Task<Word?> UpdateAsync(

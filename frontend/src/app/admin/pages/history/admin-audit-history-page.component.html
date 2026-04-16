@@ -14,6 +14,7 @@
     <label class="action-filter" for="actionType">نوع التعديل</label>
     <select id="actionType" [formControl]="actionTypeControl" aria-label="فلترة حسب نوع التعديل">
       <option value="all">الكل</option>
+      <option value="create">اضافة</option>
       <option value="update">تعديل</option>
       <option value="deactivate">تعطيل</option>
       <option value="reactivate">إعادة تفعيل</option>
@@ -53,7 +54,7 @@
               <td class="id-cell">{{ item.id }}</td>
               <td>{{ item.editedAt | date: 'yyyy/MM/dd HH:mm:ss' }}</td>
               <td>
-                <span class="action-chip" [class.deactivate]="item.actionType === 'deactivate'" [class.reactivate]="item.actionType === 'reactivate'">
+                <span class="action-chip" [class.create]="item.actionType === 'create'" [class.deactivate]="item.actionType === 'deactivate'" [class.reactivate]="item.actionType === 'reactivate'">
                   {{ actionTypeLabel(item.actionType) }}
                 </span>
               </td>

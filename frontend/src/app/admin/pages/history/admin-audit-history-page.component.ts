@@ -188,6 +188,10 @@ export class AdminAuditHistoryPageComponent {
   }
 
   protected actionTypeLabel(actionType: AdminAuditActionType): string {
+    if (actionType === 'create') {
+      return 'اضافة';
+    }
+
     if (actionType === 'deactivate') {
       return 'تعطيل';
     }

@@ -103,6 +103,12 @@ th {
     background-color: rgba(27, 77, 126, 0.08);
 }
 
+.action-chip.create {
+    border-color: rgba(46, 118, 72, 0.45);
+    color: #1f6f4b;
+    background-color: rgba(39, 120, 80, 0.1);
+}
+
 .action-chip.deactivate {
     border-color: rgba(164, 59, 48, 0.38);
     color: #a43b30;
