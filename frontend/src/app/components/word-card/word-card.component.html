@@ -22,7 +22,7 @@
 
   <div class="word-actions">
     <button class="share-trigger" type="button" (click)="openSharePopup()" title="مشاركة">
-      <i class="fas fa-share-alt"></i>
+      <fa-icon [icon]="shareIcon" class="icon" aria-hidden="true" />
       مشاركة
     </button>
   </div>
@@ -44,19 +44,19 @@
 
       <div class="share-actions-grid">
         <button class="share-action" type="button" (click)="copyShareLink()" title="نسخ الرابط">
-          <i class="fas fa-copy"></i>
+          <fa-icon [icon]="copyIcon" class="icon" aria-hidden="true" />
           نسخ الرابط
         </button>
         <button class="share-action" type="button" (click)="shareOnFacebook()" title="شارك على فيسبوك">
-          <i class="fab fa-facebook"></i>
+          <fa-icon [icon]="facebookIcon" class="icon" aria-hidden="true" />
           فيسبوك
         </button>
         <button class="share-action" type="button" (click)="shareOnTwitter()" title="شارك على تويتر">
-          <i class="fa-brands fa-x-twitter"></i>
+          <fa-icon [icon]="xTwitterIcon" class="icon" aria-hidden="true" />
           تويتر/X
         </button>
         <button class="share-action" type="button" (click)="shareOnWhatsapp()" title="شارك على واتساب">
-          <i class="fab fa-whatsapp"></i>
+          <fa-icon [icon]="whatsappIcon" class="icon" aria-hidden="true" />
           واتساب
         </button>
       </div>

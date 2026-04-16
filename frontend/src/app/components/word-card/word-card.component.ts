@@ -1,5 +1,8 @@
 import { DOCUMENT } from '@angular/common';
 import { Component, Input, NgZone, OnChanges, SimpleChanges, inject, signal } from '@angular/core';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import { faFacebook, faWhatsapp, faXTwitter } from '@fortawesome/free-brands-svg-icons';
+import { faCopy, faShareNodes } from '@fortawesome/free-solid-svg-icons';
 import { Word } from '../../models/word';
 import { WordSearchResult } from '../../models/word-search-result';
 
@@ -55,6 +58,7 @@ const TAG_KEYS_SORTED = Object.keys(TAG_TOOLTIP_BY_KEY).sort((first, second) => 
 
 @Component({
   selector: 'app-word-card',
+  imports: [FontAwesomeModule],
   templateUrl: './word-card.component.html',
   styleUrl: './word-card.component.css'
 })
@@ -67,6 +71,11 @@ export class WordCardComponent implements OnChanges {
   protected definitionParts: DefinitionPart[] = [];
   protected isSharePopupOpen = false;
   protected readonly copyFeedback = signal('');
+  protected readonly shareIcon = faShareNodes;
+  protected readonly copyIcon = faCopy;
+  protected readonly facebookIcon = faFacebook;
+  protected readonly xTwitterIcon = faXTwitter;
+  protected readonly whatsappIcon = faWhatsapp;
   private feedbackTimeout: number | undefined;
 
   ngOnChanges(changes: SimpleChanges): void {
