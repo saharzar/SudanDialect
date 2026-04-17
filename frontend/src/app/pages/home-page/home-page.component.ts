@@ -155,6 +155,22 @@ export class HomePageComponent implements OnDestroy {
 
   protected onSearchInputFocus(): void {
     this.isInputFocused.set(true);
+
+    const trimmedQuery = this.searchQuery().trim();
+    if (!trimmedQuery) {
+      return;
+    }
+
+    const selectedWord = this.selectedWord();
+    const currentResults = this.results();
+    const isSingleRouteWordState =
+      selectedWord !== null
+      && currentResults.length === 1
+      && currentResults[0].id === selectedWord.id;
+
+    if (isSingleRouteWordState) {
+      this.searchInput$.next(trimmedQuery);
+    }
   }
 
   protected onSearchInputBlur(): void {
