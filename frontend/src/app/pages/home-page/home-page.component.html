@@ -33,74 +33,82 @@
     </p>
 
     @if (isSuggestionFormOpen()) {
-      <section class="suggestion-form" aria-label="اقتراح كلمة جديدة">
-        <header class="suggestion-form-header">
-          <h2>اقترح كلمة</h2>
-          <button type="button" class="suggestion-close" (click)="closeSuggestionForm()">إغلاق</button>
-        </header>
+      <div class="suggestion-popup-backdrop" (click)="closeSuggestionForm()">
+        <section
+          class="suggestion-popup"
+          role="dialog"
+          aria-modal="true"
+          aria-label="اقتراح كلمة"
+          (click)="$event.stopPropagation()"
+        >
+          <h3 class="suggestion-title">اقترح كلمة</h3>
 
-        <label class="suggestion-label" for="suggestionHeadword">الكلمة</label>
-        <input
-          id="suggestionHeadword"
-          class="suggestion-input"
-          type="text"
-          [value]="suggestionHeadword()"
-          (input)="onSuggestionHeadwordInput($event)"
-          [disabled]="isSubmittingSuggestion()"
-          maxlength="200"
-          placeholder="مثال: كباية"
-        />
+          <label class="suggestion-label" for="suggestionHeadword">الكلمة</label>
+          <input
+            id="suggestionHeadword"
+            class="suggestion-input"
+            type="text"
+            [value]="suggestionHeadword()"
+            (input)="onSuggestionHeadwordInput($event)"
+            [disabled]="isSubmittingSuggestion()"
+            maxlength="200"
+            placeholder="مثال: كباية"
+          />
 
-        <label class="suggestion-label" for="suggestionDefinition">التعريف</label>
-        <textarea
-          id="suggestionDefinition"
-          class="suggestion-textarea"
-          [value]="suggestionDefinition()"
-          (input)="onSuggestionDefinitionInput($event)"
-          [disabled]="isSubmittingSuggestion()"
-          rows="5"
-          maxlength="4000"
-          placeholder="اكتب شرح الكلمة أو طريقة استخدامها..."
-        ></textarea>
+          <label class="suggestion-label" for="suggestionDefinition">التعريف</label>
+          <textarea
+            id="suggestionDefinition"
+            class="suggestion-textarea"
+            [value]="suggestionDefinition()"
+            (input)="onSuggestionDefinitionInput($event)"
+            [disabled]="isSubmittingSuggestion()"
+            rows="5"
+            maxlength="4000"
+            placeholder="اكتب شرح الكلمة أو طريقة استخدامها..."
+          ></textarea>
 
-        <label class="suggestion-label" for="suggestionEmail">البريد الإلكتروني (اختياري)</label>
-        <input
-          id="suggestionEmail"
-          class="suggestion-input"
-          type="email"
-          [value]="suggestionEmail()"
-          (input)="onSuggestionEmailInput($event)"
-          [disabled]="isSubmittingSuggestion()"
-          maxlength="320"
-          placeholder="name@example.com"
-          dir="ltr"
-        />
+          <label class="suggestion-label" for="suggestionEmail">البريد الإلكتروني (اختياري)</label>
+          <input
+            id="suggestionEmail"
+            class="suggestion-input"
+            type="email"
+            [value]="suggestionEmail()"
+            (input)="onSuggestionEmailInput($event)"
+            [disabled]="isSubmittingSuggestion()"
+            maxlength="320"
+            placeholder="name@example.com"
+            dir="ltr"
+          />
 
-        <p class="suggestion-privacy-note">
-          لن يتم نشر البريد الإلكتروني بشكل عام، وسيُستخدم فقط إذا احتجنا للتواصل معك.
-        </p>
+          <p class="suggestion-privacy-note">
+            لن يتم نشر البريد الإلكتروني بشكل عام، وسيُستخدم فقط إذا احتجنا للتواصل معك.
+          </p>
 
-        <div class="suggestion-captcha-wrap">
-          @if (!isTurnstileConfigured) {
-            <p class="suggestion-captcha-missing">التحقق الأمني غير مفعّل حالياً.</p>
+          <div class="suggestion-captcha-wrap">
+            @if (!isTurnstileConfigured) {
+              <p class="suggestion-captcha-missing">التحقق الأمني غير مفعّل حالياً.</p>
+            }
+            <div [id]="suggestionCaptchaContainerId"></div>
+          </div>
+
+          @if (suggestionError()) {
+            <p class="suggestion-error" role="alert">{{ suggestionError() }}</p>
           }
-          <div [id]="suggestionCaptchaContainerId"></div>
-        </div>
 
-        @if (suggestionError()) {
-          <p class="suggestion-error" role="alert">{{ suggestionError() }}</p>
-        }
+          @if (suggestionSuccess()) {
+            <p class="suggestion-success">{{ suggestionSuccess() }}</p>
+          }
 
-        @if (suggestionSuccess()) {
-          <p class="suggestion-success">{{ suggestionSuccess() }}</p>
-        }
-
-        <div class="suggestion-actions">
-          <button type="button" class="suggestion-submit" (click)="submitSuggestion()" [disabled]="isSubmittingSuggestion()">
-            {{ isSubmittingSuggestion() ? 'جارٍ الإرسال...' : 'إرسال الاقتراح' }}
-          </button>
-        </div>
-      </section>
+          <div class="suggestion-actions">
+            <button type="button" class="suggestion-submit" (click)="submitSuggestion()" [disabled]="isSubmittingSuggestion()">
+              {{ isSubmittingSuggestion() ? 'جارٍ الإرسال...' : 'إرسال الاقتراح' }}
+            </button>
+            <button type="button" class="suggestion-close" (click)="closeSuggestionForm()" [disabled]="isSubmittingSuggestion()">
+              إغلاق
+            </button>
+          </div>
+        </section>
+      </div>
     }
   </section>
 </main>
