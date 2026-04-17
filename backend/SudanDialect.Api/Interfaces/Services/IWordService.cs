@@ -20,4 +20,12 @@ public interface IWordService
         string? captchaToken,
         string? remoteIp,
         CancellationToken cancellationToken = default);
+
+    Task<bool> SubmitSuggestionAsync(
+        string? headword,
+        string? definition,
+        string? email,
+        string? captchaToken,
+        string? remoteIp,
+        CancellationToken cancellationToken = default);
 }

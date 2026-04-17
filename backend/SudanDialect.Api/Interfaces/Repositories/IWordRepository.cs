@@ -19,4 +19,6 @@ public interface IWordRepository
         CancellationToken cancellationToken = default);
 
     Task<Feedback> AddFeedbackAsync(Feedback feedback, CancellationToken cancellationToken = default);
+
+    Task<WordSuggestion> AddSuggestionAsync(WordSuggestion suggestion, CancellationToken cancellationToken = default);
 }

@@ -3,6 +3,7 @@ using SudanDialect.Api.Interfaces.Repositories;
 using SudanDialect.Api.Interfaces.Services;
 using SudanDialect.Api.Models;
 using SudanDialect.Api.Utilities;
+using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Text.RegularExpressions;
 
@@ -15,6 +16,9 @@ public sealed class WordService : IWordService
     private const int MaxBrowseResults = 20000;
     private const int MaxBrowsePageSize = 200;
     private const int MaxFeedbackLength = 2000;
+    private const int MaxSuggestionHeadwordLength = 200;
+    private const int MaxSuggestionDefinitionLength = 4000;
+    private const int MaxSuggestionEmailLength = 320;
 
     private static readonly Regex ArabicLetterRegex = new("^[\\u0621-\\u064A]$", RegexOptions.Compiled);
     private static readonly CompareInfo ArabicCompareInfo = CultureInfo.GetCultureInfo("ar").CompareInfo;
@@ -193,6 +197,77 @@ public sealed class WordService : IWordService
             {
                 WordId = wordId,
                 FeedbackText = normalizedFeedback
+            },
+            cancellationToken);
+
+        return true;
+    }
+
+    public async Task<bool> SubmitSuggestionAsync(
+        string? headword,
+        string? definition,
+        string? email,
+        string? captchaToken,
+        string? remoteIp,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(headword))
+        {
+            throw new ArgumentException("Headword is required.", nameof(headword));
+        }
+
+        if (string.IsNullOrWhiteSpace(definition))
+        {
+            throw new ArgumentException("Definition is required.", nameof(definition));
+        }
+
+        var normalizedHeadword = headword.Trim();
+        if (normalizedHeadword.Length > MaxSuggestionHeadwordLength)
+        {
+            throw new ArgumentException($"Headword cannot exceed {MaxSuggestionHeadwordLength} characters.", nameof(headword));
+        }
+
+        var normalizedDefinition = definition.Trim();
+        if (normalizedDefinition.Length > MaxSuggestionDefinitionLength)
+        {
+            throw new ArgumentException($"Definition cannot exceed {MaxSuggestionDefinitionLength} characters.", nameof(definition));
+        }
+
+        string? normalizedEmail = null;
+        if (!string.IsNullOrWhiteSpace(email))
+        {
+            normalizedEmail = email.Trim();
+
+            if (normalizedEmail.Length > MaxSuggestionEmailLength)
+            {
+                throw new ArgumentException($"Email cannot exceed {MaxSuggestionEmailLength} characters.", nameof(email));
+            }
+
+            var emailAttribute = new EmailAddressAttribute();
+            if (!emailAttribute.IsValid(normalizedEmail))
+            {
+                throw new ArgumentException("Email is not valid.", nameof(email));
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(captchaToken))
+        {
+            throw new ArgumentException("Captcha token is required.", nameof(captchaToken));
+        }
+
+        var captchaValid = await _turnstileVerificationService.VerifyAsync(captchaToken, remoteIp, cancellationToken);
+        if (!captchaValid)
+        {
+            throw new ArgumentException("Captcha verification failed.", nameof(captchaToken));
+        }
+
+        await _wordRepository.AddSuggestionAsync(
+            new WordSuggestion
+            {
+                Headword = normalizedHeadword,
+                Definition = normalizedDefinition,
+                Email = normalizedEmail,
+                Resolved = false
             },
             cancellationToken);
 

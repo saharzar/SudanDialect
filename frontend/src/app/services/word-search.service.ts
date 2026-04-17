@@ -63,6 +63,23 @@ export class WordSearchService {
     );
   }
 
+  submitSuggestion(
+    headword: string,
+    definition: string,
+    email: string | null,
+    captchaToken: string
+  ): Observable<{ submitted: boolean }> {
+    return this.http.post<{ submitted: boolean }>(
+      `${environment.apiBaseUrl}/api/words/suggestions`,
+      {
+        headword,
+        definition,
+        email,
+        captchaToken
+      }
+    );
+  }
+
   private sortBySimilarity(results: WordSearchResult[]): WordSearchResult[] {
     return [...results].sort((first, second) => {
       const scoreDifference = second.similarityScore - first.similarityScore;

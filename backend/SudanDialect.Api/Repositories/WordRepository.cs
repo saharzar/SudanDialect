@@ -90,4 +90,11 @@ public sealed class WordRepository : IWordRepository
         await _dbContext.SaveChangesAsync(cancellationToken);
         return feedback;
     }
+
+    public async Task<WordSuggestion> AddSuggestionAsync(WordSuggestion suggestion, CancellationToken cancellationToken = default)
+    {
+        _dbContext.WordSuggestions.Add(suggestion);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        return suggestion;
+    }
 }

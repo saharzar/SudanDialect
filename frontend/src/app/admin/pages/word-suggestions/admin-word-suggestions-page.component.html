@@ -1,0 +1,104 @@
+<section class="suggestions-page" dir="rtl">
+  <header class="toolbar">
+    <h2>اقتراحات الكلمات</h2>
+
+    <div class="toolbar-actions">
+      <button type="button" class="secondary" (click)="refresh()">تحديث</button>
+    </div>
+  </header>
+
+  <div class="filters">
+    <div class="search-box">
+      <input
+        type="text"
+        [formControl]="queryControl"
+        placeholder="ابحث في الكلمة أو التعريف أو البريد..."
+        aria-label="البحث في اقتراحات الكلمات"
+      />
+    </div>
+
+    <div class="status-filter" role="group" aria-label="فلترة حسب حالة المراجعة">
+      <button type="button" [class.active]="resolvedFilter() === 'all'" (click)="setResolvedFilter('all')">
+        الكل
+      </button>
+      <button type="button" [class.active]="resolvedFilter() === 'unresolved'" (click)="setResolvedFilter('unresolved')">
+        غير مراجعة
+      </button>
+      <button type="button" [class.active]="resolvedFilter() === 'resolved'" (click)="setResolvedFilter('resolved')">
+        مراجعة
+      </button>
+    </div>
+
+    <button type="button" class="secondary sort-toggle" (click)="toggleSortDirection()">
+      الترتيب الزمني: {{ sortDirection() === 'desc' ? 'الأحدث أولاً' : 'الأقدم أولاً' }}
+    </button>
+  </div>
+
+  @if (errorMessage()) {
+    <p class="error" role="alert">{{ errorMessage() }}</p>
+  }
+
+  <div class="table-wrapper">
+    <table aria-label="جدول اقتراحات الكلمات">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>الكلمة</th>
+          <th>التعريف</th>
+          <th>البريد الإلكتروني</th>
+          <th>الوقت</th>
+          <th>الحالة</th>
+          <th>إجراءات</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        @if (isLoading()) {
+          <tr>
+            <td colspan="7" class="state-cell">جاري تحميل البيانات...</td>
+          </tr>
+        } @else {
+          @for (item of suggestionItems(); track item.id) {
+            <tr>
+              <td class="id-cell">{{ item.id }}</td>
+              <td class="headword-cell">{{ item.headword }}</td>
+              <td class="definition-cell">{{ item.definition }}</td>
+              <td class="email-cell" dir="ltr">{{ item.email || '-' }}</td>
+              <td>{{ item.timestamp | date: 'yyyy/MM/dd HH:mm:ss' }}</td>
+              <td>
+                <span class="status-pill" [class.resolved]="item.resolved" [class.unresolved]="!item.resolved">
+                  {{ item.resolved ? 'مراجعة' : 'غير مراجعة' }}
+                </span>
+              </td>
+              <td>
+                <div class="row-actions">
+                  <button
+                    type="button"
+                    [class.primary]="!item.resolved"
+                    [class.secondary]="item.resolved"
+                    (click)="toggleResolved(item.id, item.resolved)">
+                    {{ item.resolved ? 'إعادة الفتح' : 'تعيين كمراجعة' }}
+                  </button>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="7" class="state-cell">لا توجد اقتراحات مطابقة للمعايير الحالية.</td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <footer class="pagination">
+    <p>إجمالي السجلات: {{ totalCount() }}</p>
+
+    <div class="pager-buttons">
+      <button type="button" (click)="previousPage()" [disabled]="!canGoPrevious()">السابق</button>
+      <span>صفحة {{ page() }} من {{ totalPages() || 1 }}</span>
+      <button type="button" (click)="nextPage()" [disabled]="!canGoNext()">التالي</button>
+    </div>
+  </footer>
+</section>

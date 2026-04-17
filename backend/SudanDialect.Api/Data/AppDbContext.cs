@@ -15,6 +15,7 @@ public sealed class AppDbContext : IdentityDbContext<IdentityUser>
     public DbSet<Word> Words => Set<Word>();
     public DbSet<Audit> Audits => Set<Audit>();
     public DbSet<Feedback> Feedback => Set<Feedback>();
+    public DbSet<WordSuggestion> WordSuggestions => Set<WordSuggestion>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -142,6 +143,38 @@ public sealed class AppDbContext : IdentityDbContext<IdentityUser>
 
             entity.HasIndex(feedback => new { feedback.WordId, feedback.Timestamp });
         });
+
+        modelBuilder.Entity<WordSuggestion>(entity =>
+        {
+            entity.ToTable("word_suggestions");
+
+            entity.HasKey(suggestion => suggestion.Id);
+
+            entity.Property(suggestion => suggestion.Headword)
+                .HasColumnName("headword")
+                .IsRequired();
+
+            entity.Property(suggestion => suggestion.Definition)
+                .HasColumnName("definition")
+                .IsRequired();
+
+            entity.Property(suggestion => suggestion.Email)
+                .HasColumnName("email")
+                .HasMaxLength(320);
+
+            entity.Property(suggestion => suggestion.Resolved)
+                .HasColumnName("resolved")
+                .HasDefaultValue(false)
+                .IsRequired();
+
+            entity.Property(suggestion => suggestion.Timestamp)
+                .HasColumnName("timestamp")
+                .HasColumnType("timestamp with time zone")
+                .IsRequired();
+
+            entity.HasIndex(suggestion => suggestion.Timestamp);
+            entity.HasIndex(suggestion => new { suggestion.Resolved, suggestion.Timestamp });
+        });
     }
 
     public override int SaveChanges()
@@ -191,6 +224,14 @@ public sealed class AppDbContext : IdentityDbContext<IdentityUser>
         }
 
         foreach (var entry in ChangeTracker.Entries<Feedback>())
+        {
+            if (entry.State == EntityState.Added && entry.Entity.Timestamp == default)
+            {
+                entry.Entity.Timestamp = utcNow;
+            }
+        }
+
+        foreach (var entry in ChangeTracker.Entries<WordSuggestion>())
         {
             if (entry.State == EntityState.Added && entry.Entity.Timestamp == default)
             {

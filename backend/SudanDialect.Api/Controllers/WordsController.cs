@@ -112,4 +112,29 @@ public sealed class WordsController : ControllerBase
             return BadRequest(new { error = exception.Message });
         }
     }
+
+    [HttpPost("suggestions")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<object>> SubmitSuggestion(
+        [FromBody] SubmitWordSuggestionRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var submitted = await _wordService.SubmitSuggestionAsync(
+                request.Headword,
+                request.Definition,
+                request.Email,
+                request.CaptchaToken,
+                HttpContext.Connection.RemoteIpAddress?.ToString(),
+                cancellationToken);
+
+            return Ok(new { submitted });
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { error = exception.Message });
+        }
+    }
 }

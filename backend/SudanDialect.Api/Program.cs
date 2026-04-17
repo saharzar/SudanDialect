@@ -159,6 +159,8 @@ builder.Services.AddScoped<IAdminWordRepository, AdminWordRepository>();
 builder.Services.AddScoped<IAdminWordService, AdminWordService>();
 builder.Services.AddScoped<IAdminFeedbackRepository, AdminFeedbackRepository>();
 builder.Services.AddScoped<IAdminFeedbackService, AdminFeedbackService>();
+builder.Services.AddScoped<IAdminWordSuggestionRepository, AdminWordSuggestionRepository>();
+builder.Services.AddScoped<IAdminWordSuggestionService, AdminWordSuggestionService>();
 builder.Services.AddScoped<IAdminAuthService, AdminAuthService>();
 builder.Services.AddScoped<IAdminUserService, AdminUserService>();
 

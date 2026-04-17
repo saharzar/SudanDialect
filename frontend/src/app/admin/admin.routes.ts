@@ -6,6 +6,7 @@ import { AdminFeedbackPageComponent } from './pages/feedback/admin-feedback-page
 import { AdminAuditHistoryPageComponent } from './pages/history/admin-audit-history-page.component';
 import { AdminLoginPageComponent } from './pages/login/admin-login-page.component';
 import { AdminSettingsPageComponent } from './pages/settings/admin-settings-page.component';
+import { AdminWordSuggestionsPageComponent } from './pages/word-suggestions/admin-word-suggestions-page.component';
 import { WordFormComponent } from './pages/words/word-form.component';
 import { WordListComponent } from './pages/words/word-list.component';
 
@@ -36,6 +37,10 @@ export const adminRoutes: Routes = [
             {
                 path: 'feedback',
                 component: AdminFeedbackPageComponent
+            },
+            {
+                path: 'word-suggestions',
+                component: AdminWordSuggestionsPageComponent
             },
             {
                 path: 'words',

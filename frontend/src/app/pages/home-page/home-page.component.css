@@ -21,6 +21,132 @@
   margin-top: 16px;
 }
 
+.suggestion-hint {
+  margin: 10px 0 0;
+  width: 100%;
+  text-align: center;
+  font-size: 0.92rem;
+  color: #6b5f53;
+}
+
+.suggestion-hint a {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-weight: 600;
+}
+
+.suggestion-form {
+  width: 100%;
+  margin-top: 12px;
+  border: 1px solid rgba(196, 154, 108, 0.7);
+  background-color: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 8px 20px rgba(58, 49, 46, 0.08);
+  padding: 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.suggestion-form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.suggestion-form-header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  color: var(--color-primary);
+}
+
+.suggestion-close {
+  border: 1px solid rgba(27, 77, 126, 0.28);
+  background: #fff;
+  color: var(--color-primary);
+  min-height: 34px;
+  padding: 0 10px;
+  font-size: 0.9rem;
+}
+
+.suggestion-label {
+  font-size: 0.9rem;
+  color: #413732;
+}
+
+.suggestion-input,
+.suggestion-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid rgba(196, 154, 108, 0.9);
+  background: #fff;
+  color: #332d2a;
+  padding: 10px 12px;
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+
+.suggestion-input:focus,
+.suggestion-textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(27, 77, 126, 0.14);
+}
+
+.suggestion-textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.suggestion-privacy-note {
+  margin: 2px 0 0;
+  color: #6b5f53;
+  font-size: 0.86rem;
+}
+
+.suggestion-captcha-wrap {
+  margin-top: 2px;
+}
+
+.suggestion-captcha-missing {
+  margin: 0 0 6px;
+  color: #a14d2d;
+  font-size: 0.86rem;
+}
+
+.suggestion-error,
+.suggestion-success {
+  margin: 2px 0 0;
+  font-size: 0.9rem;
+}
+
+.suggestion-error {
+  color: #a43b30;
+}
+
+.suggestion-success {
+  color: #1f6f4b;
+}
+
+.suggestion-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.suggestion-submit {
+  border: 1px solid var(--color-primary);
+  background: var(--color-primary);
+  color: #fff;
+  min-height: 38px;
+  padding: 0 16px;
+  font-size: 0.94rem;
+}
+
+.suggestion-submit:disabled,
+.suggestion-close:disabled {
+  opacity: 0.6;
+}
+
 .brand-logo {
   width: 64px;
   height: 64px;
@@ -55,5 +181,9 @@
 
   .title {
     margin-bottom: 22px;
+  }
+
+  .suggestion-form {
+    padding: 12px;
   }
 }
