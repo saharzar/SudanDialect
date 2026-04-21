@@ -5,13 +5,14 @@ import { map } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { WordBrowsePage } from '../models/word-browse-page';
 import { WordSearchResult } from '../models/word-search-result';
+import { Word } from '../models/word';
 
 @Injectable({ providedIn: 'root' })
 export class WordSearchService {
   private readonly http = inject(HttpClient);
 
-  getById(id: number): Observable<WordSearchResult> {
-    return this.http.get<WordSearchResult>(`${environment.apiBaseUrl}/api/words/${id}`);
+  getById(id: string): Observable<Word> {
+    return this.http.get<Word>(`${environment.apiBaseUrl}/api/words/${id}`);
   }
 
   search(query: string): Observable<WordSearchResult[]> {
@@ -53,7 +54,7 @@ export class WordSearchService {
       );
   }
 
-  submitFeedback(wordId: number, feedbackText: string, captchaToken: string): Observable<{ submitted: boolean }> {
+  submitFeedback(wordId: string, feedbackText: string, captchaToken: string): Observable<{ submitted: boolean }> {
     return this.http.post<{ submitted: boolean }>(
       `${environment.apiBaseUrl}/api/words/${wordId}/feedback`,
       {

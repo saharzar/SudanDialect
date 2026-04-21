@@ -27,6 +27,7 @@ builder.Services.AddOpenApi();
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 builder.Services.Configure<AdminSeedOptions>(builder.Configuration.GetSection(AdminSeedOptions.SectionName));
 builder.Services.Configure<TurnstileOptions>(builder.Configuration.GetSection(TurnstileOptions.SectionName));
+builder.Services.Configure<PublicIdOptions>(builder.Configuration.GetSection(PublicIdOptions.SectionName));
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
@@ -153,6 +154,7 @@ builder.Services.AddRateLimiter(options =>
 });
 
 builder.Services.AddScoped<IWordRepository, WordRepository>();
+builder.Services.AddSingleton<IPublicIdEncoder, SqidsPublicIdEncoder>();
 builder.Services.AddScoped<IWordService, WordService>();
 builder.Services.AddHttpClient<ITurnstileVerificationService, TurnstileVerificationService>();
 builder.Services.AddScoped<IAdminWordRepository, AdminWordRepository>();

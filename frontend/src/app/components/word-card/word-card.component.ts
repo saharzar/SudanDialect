@@ -5,7 +5,6 @@ import { faFacebook, faWhatsapp, faXTwitter } from '@fortawesome/free-brands-svg
 import { faCopy, faShareNodes, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
 import { environment } from '../../../environments/environment';
 import { Word } from '../../models/word';
-import { WordSearchResult } from '../../models/word-search-result';
 import { WordSearchService } from '../../services/word-search.service';
 
 interface TurnstileApi {
@@ -81,7 +80,7 @@ export class WordCardComponent implements OnChanges, OnDestroy {
   private readonly ngZone = inject(NgZone);
   private readonly wordSearchService = inject(WordSearchService);
 
-  @Input({ required: true }) word!: WordSearchResult | Word;
+  @Input({ required: true }) word!: Word;
 
   protected definitionParts: DefinitionPart[] = [];
   protected isSharePopupOpen = false;

@@ -1,8 +1,8 @@
 namespace SudanDialect.Api.Dtos;
 
-public sealed class WordSearchResultDto
+public sealed class WordSearchCandidateDto
 {
-    public string Id { get; init; } = string.Empty;
+    public int Id { get; init; }
     public string Headword { get; init; } = string.Empty;
     public double SimilarityScore { get; init; }
 }

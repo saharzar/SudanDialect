@@ -1,7 +1,7 @@
-import { Word } from './word';
+import { WordSummary } from './word-summary';
 
 export type WordBrowsePage = {
-    items: Word[];
+    items: WordSummary[];
     page: number;
     pageSize: number;
     totalCount: number;

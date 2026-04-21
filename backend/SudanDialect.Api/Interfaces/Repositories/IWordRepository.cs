@@ -5,7 +5,7 @@ namespace SudanDialect.Api.Interfaces.Repositories;
 
 public interface IWordRepository
 {
-    Task<WordSearchResultDto?> GetActiveByIdAsync(int id, CancellationToken cancellationToken = default);
+    Task<Word?> GetActiveByIdAsync(int id, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<Word>> GetActiveByFirstLetterAsync(
         string rawLetter,
@@ -13,7 +13,7 @@ public interface IWordRepository
         int take,
         CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<WordSearchResultDto>> SearchActiveByNormalizedQueryAsync(
+    Task<IReadOnlyList<WordSearchCandidateDto>> SearchActiveByNormalizedQueryAsync(
         string normalizedQuery,
         int take,
         CancellationToken cancellationToken = default);

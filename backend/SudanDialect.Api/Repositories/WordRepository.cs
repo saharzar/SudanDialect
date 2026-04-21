@@ -18,18 +18,11 @@ public sealed class WordRepository : IWordRepository
         _dbContext = dbContext;
     }
 
-    public async Task<WordSearchResultDto?> GetActiveByIdAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<Word?> GetActiveByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         return await _dbContext.Words
             .AsNoTracking()
             .Where(word => word.IsActive && word.Id == id)
-            .Select(word => new WordSearchResultDto
-            {
-                Id = word.Id,
-                Headword = word.Headword,
-                Definition = word.Definition,
-                SimilarityScore = 1.0
-            })
             .SingleOrDefaultAsync(cancellationToken);
     }
 
@@ -55,24 +48,23 @@ public sealed class WordRepository : IWordRepository
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<IReadOnlyList<WordSearchResultDto>> SearchActiveByNormalizedQueryAsync(
+    public async Task<IReadOnlyList<WordSearchCandidateDto>> SearchActiveByNormalizedQueryAsync(
         string normalizedQuery,
         int take,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(normalizedQuery))
         {
-            return Array.Empty<WordSearchResultDto>();
+            return Array.Empty<WordSearchCandidateDto>();
         }
 
         return await _dbContext.Words
             .AsNoTracking()
             .Where(word => word.IsActive)
-            .Select(word => new WordSearchResultDto
+            .Select(word => new WordSearchCandidateDto
             {
                 Id = word.Id,
                 Headword = word.Headword,
-                Definition = word.Definition,
                 SimilarityScore =
                     EF.Functions.TrigramsSimilarity(word.NormalizedHeadword, normalizedQuery)
                 // EF.Functions.TrigramsSimilarity(word.NormalizedDefinition, normalizedQuery)

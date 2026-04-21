@@ -1,6 +1,5 @@
 export type WordSearchResult = {
-    id: number;
+    id: string;
     headword: string;
-    definition: string;
     similarityScore: number;
 };

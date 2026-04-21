@@ -1,8 +1,5 @@
 export type Word = {
-    id: number;
+    id: string;
     headword: string;
     definition: string;
-    isActive: boolean;
-    createdAt: string;
-    updatedAt: string;
 };

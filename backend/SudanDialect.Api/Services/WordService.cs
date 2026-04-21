@@ -14,7 +14,7 @@ public sealed class WordService : IWordService
     private const int MaxQueryLength = 200;
     private const int MaxResults = 10;
     private const int MaxBrowseResults = 20000;
-    private const int MaxBrowsePageSize = 200;
+    private const int MaxBrowsePageSize = 60;
     private const int MaxFeedbackLength = 2000;
     private const int MaxSuggestionHeadwordLength = 200;
     private const int MaxSuggestionDefinitionLength = 4000;
@@ -24,22 +24,35 @@ public sealed class WordService : IWordService
     private static readonly CompareInfo ArabicCompareInfo = CultureInfo.GetCultureInfo("ar").CompareInfo;
 
     private readonly IWordRepository _wordRepository;
+    private readonly IPublicIdEncoder _publicIdEncoder;
     private readonly ITurnstileVerificationService _turnstileVerificationService;
 
-    public WordService(IWordRepository wordRepository, ITurnstileVerificationService turnstileVerificationService)
+    public WordService(
+        IWordRepository wordRepository,
+        IPublicIdEncoder publicIdEncoder,
+        ITurnstileVerificationService turnstileVerificationService)
     {
         _wordRepository = wordRepository;
+        _publicIdEncoder = publicIdEncoder;
         _turnstileVerificationService = turnstileVerificationService;
     }
 
-    public async Task<WordSearchResultDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<WordDetailsDto?> GetByPublicIdAsync(string publicId, CancellationToken cancellationToken = default)
     {
-        if (id <= 0)
+        var id = DecodeWordPublicIdOrThrow(publicId);
+
+        var word = await _wordRepository.GetActiveByIdAsync(id, cancellationToken);
+        if (word is null)
         {
-            throw new ArgumentOutOfRangeException(nameof(id), "Word id must be a positive integer.");
+            return null;
         }
 
-        return await _wordRepository.GetActiveByIdAsync(id, cancellationToken);
+        return new WordDetailsDto
+        {
+            Id = _publicIdEncoder.EncodeWordId(word.Id),
+            Headword = word.Headword,
+            Definition = word.Definition
+        };
     }
 
     public async Task<IReadOnlyList<WordSearchResultDto>> SearchAsync(string? rawQuery, CancellationToken cancellationToken = default)
@@ -66,10 +79,17 @@ public sealed class WordService : IWordService
             MaxResults,
             cancellationToken);
 
-        return searchResults;
+        return searchResults
+            .Select(result => new WordSearchResultDto
+            {
+                Id = _publicIdEncoder.EncodeWordId(result.Id),
+                Headword = result.Headword,
+                SimilarityScore = result.SimilarityScore
+            })
+            .ToList();
     }
 
-    public async Task<WordPageDto> BrowseByLetterAsync(
+    public async Task<WordBrowsePageDto> BrowseByLetterAsync(
         string? rawLetter,
         int page,
         int pageSize,
@@ -99,7 +119,7 @@ public sealed class WordService : IWordService
         var normalizedLetter = ArabicTextNormalizer.Normalize(trimmedLetter);
         if (string.IsNullOrWhiteSpace(normalizedLetter))
         {
-            return new WordPageDto
+            return new WordBrowsePageDto
             {
                 Items = [],
                 Page = page,
@@ -125,7 +145,7 @@ public sealed class WordService : IWordService
 
         if (totalPages == 0)
         {
-            return new WordPageDto
+            return new WordBrowsePageDto
             {
                 Items = [],
                 Page = 1,
@@ -140,9 +160,14 @@ public sealed class WordService : IWordService
         var pagedItems = sortedWords
             .Skip(skip)
             .Take(pageSize)
+            .Select(word => new WordSummaryDto
+            {
+                Id = _publicIdEncoder.EncodeWordId(word.Id),
+                Headword = word.Headword
+            })
             .ToList();
 
-        return new WordPageDto
+        return new WordBrowsePageDto
         {
             Items = pagedItems,
             Page = boundedPage,
@@ -153,16 +178,13 @@ public sealed class WordService : IWordService
     }
 
     public async Task<bool> SubmitFeedbackAsync(
-        int wordId,
+        string publicWordId,
         string? feedbackText,
         string? captchaToken,
         string? remoteIp,
         CancellationToken cancellationToken = default)
     {
-        if (wordId <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(wordId), "Word id must be a positive integer.");
-        }
+        var wordId = DecodeWordPublicIdOrThrow(publicWordId);
 
         if (string.IsNullOrWhiteSpace(feedbackText))
         {
@@ -272,5 +294,15 @@ public sealed class WordService : IWordService
             cancellationToken);
 
         return true;
+    }
+
+    private int DecodeWordPublicIdOrThrow(string publicId)
+    {
+        if (!_publicIdEncoder.TryDecodeWordId(publicId, out var decodedId))
+        {
+            throw new ArgumentException("Word id is invalid.", nameof(publicId));
+        }
+
+        return decodedId;
     }
 }

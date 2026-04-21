@@ -6,6 +6,7 @@ import { catchError, debounceTime, distinctUntilChanged, switchMap, takeUntil, t
 import { environment } from '../../../environments/environment';
 import { SearchBarComponent } from '../../components/search-bar/search-bar.component';
 import { WordCardComponent } from '../../components/word-card/word-card.component';
+import { Word } from '../../models/word';
 import { WordSearchResult } from '../../models/word-search-result';
 import { WordSearchService } from '../../services/word-search.service';
 
@@ -38,7 +39,7 @@ export class HomePageComponent implements OnDestroy {
 
   protected readonly searchQuery = signal('');
   protected readonly results = signal<WordSearchResult[]>([]);
-  protected readonly selectedWord = signal<WordSearchResult | null>(null);
+  protected readonly selectedWord = signal<Word | null>(null);
   protected readonly isLoading = signal(false);
   protected readonly isInputFocused = signal(false);
   protected readonly hasWordLoadError = signal(false);
@@ -106,21 +107,14 @@ export class HomePageComponent implements OnDestroy {
           const rawId = params.get('id');
           if (!rawId) {
             this.selectedWord.set(null);
-            return of<WordSearchResult | null>(null);
+            return of<Word | null>(null);
           }
 
-          const id = Number.parseInt(rawId, 10);
-          if (!Number.isInteger(id) || id <= 0) {
-            this.hasWordLoadError.set(true);
-            this.selectedWord.set(null);
-            return of<WordSearchResult | null>(null);
-          }
-
-          return this.wordSearchService.getById(id).pipe(
+          return this.wordSearchService.getById(rawId).pipe(
             catchError(() => {
               this.hasWordLoadError.set(true);
               this.selectedWord.set(null);
-              return of<WordSearchResult | null>(null);
+              return of<Word | null>(null);
             })
           );
         }),
@@ -132,10 +126,9 @@ export class HomePageComponent implements OnDestroy {
 
         if (word) {
           this.searchQuery.set(word.headword);
-          this.results.set([word]);
-        } else {
-          this.results.set([]);
         }
+
+        this.results.set([]);
       });
   }
 
@@ -161,16 +154,7 @@ export class HomePageComponent implements OnDestroy {
       return;
     }
 
-    const selectedWord = this.selectedWord();
-    const currentResults = this.results();
-    const isSingleRouteWordState =
-      selectedWord !== null
-      && currentResults.length === 1
-      && currentResults[0].id === selectedWord.id;
-
-    if (isSingleRouteWordState) {
-      this.searchInput$.next(trimmedQuery);
-    }
+    this.searchInput$.next(trimmedQuery);
   }
 
   protected onSearchInputBlur(): void {
@@ -178,11 +162,12 @@ export class HomePageComponent implements OnDestroy {
   }
 
   protected selectWord(word: WordSearchResult): void {
-    this.selectedWord.set(word);
+    this.selectedWord.set(null);
+    this.isLoading.set(true);
     this.isInputFocused.set(false);
     this.hasWordLoadError.set(false);
     this.searchQuery.set(word.headword);
-    this.results.set([word]);
+    this.results.set([]);
     void this.router.navigate(['/word', word.id], { replaceUrl: false });
   }
 

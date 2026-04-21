@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { catchError, of } from 'rxjs';
 import { WordCardComponent } from '../../components/word-card/word-card.component';
 import { Word } from '../../models/word';
+import { WordSummary } from '../../models/word-summary';
 import { WordSearchService } from '../../services/word-search.service';
 
 @Component({
@@ -12,7 +13,7 @@ import { WordSearchService } from '../../services/word-search.service';
 })
 export class BrowsePageComponent {
   private readonly wordSearchService = inject(WordSearchService);
-  private readonly pageSize = 80;
+  private readonly pageSize = 40;
 
   protected readonly letters = [
     'ا', 'ب', 'ت', 'ث', 'ج', 'ح', 'خ', 'د', 'ذ', 'ر',
@@ -24,10 +25,12 @@ export class BrowsePageComponent {
   protected readonly currentPage = signal(1);
   protected readonly totalPages = signal(0);
   protected readonly totalCount = signal(0);
-  protected readonly words = signal<Word[]>([]);
+  protected readonly words = signal<WordSummary[]>([]);
   protected readonly selectedWord = signal<Word | null>(null);
   protected readonly isLoading = signal(false);
+  protected readonly isWordLoading = signal(false);
   protected readonly hasError = signal(false);
+  protected readonly hasWordLoadError = signal(false);
 
   protected selectLetter(letter: string): void {
     if (this.selectedLetter() === letter) {
@@ -40,6 +43,8 @@ export class BrowsePageComponent {
     this.words.set([]);
     this.totalPages.set(0);
     this.totalCount.set(0);
+    this.isWordLoading.set(false);
+    this.hasWordLoadError.set(false);
     this.loadPage(1);
   }
 
@@ -92,8 +97,22 @@ export class BrowsePageComponent {
       });
   }
 
-  protected selectWord(word: Word): void {
-    this.selectedWord.set(word);
+  protected selectWord(word: WordSummary): void {
+    this.isWordLoading.set(true);
+    this.hasWordLoadError.set(false);
+
+    this.wordSearchService
+      .getById(word.id)
+      .pipe(
+        catchError(() => {
+          this.hasWordLoadError.set(true);
+          return of<Word | null>(null);
+        })
+      )
+      .subscribe((loadedWord) => {
+        this.selectedWord.set(loadedWord);
+        this.isWordLoading.set(false);
+      });
   }
 
   protected closeWordOverlay(): void {

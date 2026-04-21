@@ -4,9 +4,9 @@ namespace SudanDialect.Api.Interfaces.Services;
 
 public interface IWordService
 {
-    Task<WordSearchResultDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
+    Task<WordDetailsDto?> GetByPublicIdAsync(string publicId, CancellationToken cancellationToken = default);
 
-    Task<WordPageDto> BrowseByLetterAsync(
+    Task<WordBrowsePageDto> BrowseByLetterAsync(
         string? rawLetter,
         int page,
         int pageSize,
@@ -15,7 +15,7 @@ public interface IWordService
     Task<IReadOnlyList<WordSearchResultDto>> SearchAsync(string? rawQuery, CancellationToken cancellationToken = default);
 
     Task<bool> SubmitFeedbackAsync(
-        int wordId,
+        string publicWordId,
         string? feedbackText,
         string? captchaToken,
         string? remoteIp,

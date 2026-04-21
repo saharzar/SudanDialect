@@ -35,6 +35,14 @@
       <p class="status">لا توجد كلمات متاحة لهذا الحرف حالياً.</p>
     }
 
+    @if (isWordLoading()) {
+      <p class="status" role="status">جاري تحميل تفاصيل الكلمة...</p>
+    }
+
+    @if (hasWordLoadError()) {
+      <p class="status error" role="alert">تعذر تحميل تفاصيل الكلمة. حاول مرة أخرى.</p>
+    }
+
     @if (!isLoading() && words().length > 0) {
       <div class="words-list" role="list">
         @for (word of words(); track word.id) {

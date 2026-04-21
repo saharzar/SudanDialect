@@ -17,18 +17,18 @@ public sealed class WordsController : ControllerBase
         _wordService = wordService;
     }
 
-    [HttpGet("{id:int}")]
+    [HttpGet("{id}")]
     [EnableRateLimiting(RateLimitPolicyNames.WordsGetByIdPerIp)]
-    [ProducesResponseType(typeof(WordSearchResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(WordDetailsDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<WordSearchResultDto>> GetById(
-        [FromRoute] int id,
+    public async Task<ActionResult<WordDetailsDto>> GetById(
+        [FromRoute] string id,
         CancellationToken cancellationToken)
     {
         try
         {
-            var word = await _wordService.GetByIdAsync(id, cancellationToken);
+            var word = await _wordService.GetByPublicIdAsync(id, cancellationToken);
             if (word is null)
             {
                 return NotFound();
@@ -63,13 +63,13 @@ public sealed class WordsController : ControllerBase
 
     [HttpGet("browse")]
     [EnableRateLimiting(RateLimitPolicyNames.WordsBrowsePerIp)]
-    [ProducesResponseType(typeof(WordPageDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(WordBrowsePageDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<WordPageDto>> BrowseByLetter(
+    public async Task<ActionResult<WordBrowsePageDto>> BrowseByLetter(
         [FromQuery] string? letter,
         CancellationToken cancellationToken,
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 80)
+        [FromQuery] int pageSize = 40)
     {
         try
         {
@@ -82,12 +82,12 @@ public sealed class WordsController : ControllerBase
         }
     }
 
-    [HttpPost("{id:int}/feedback")]
+    [HttpPost("{id}/feedback")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<object>> SubmitFeedback(
-        [FromRoute] int id,
+        [FromRoute] string id,
         [FromBody] SubmitWordFeedbackRequestDto request,
         CancellationToken cancellationToken)
     {
