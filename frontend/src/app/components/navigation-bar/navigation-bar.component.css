@@ -1,8 +1,15 @@
 .navbar {
-  background-color: rgba(245, 237, 224, 0.92);
-  backdrop-filter: blur(8px);
+  background-image: url('/header.png'); /* or whatever you name the file */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
+  /* Remove or comment out these: */
+  /* background-color: rgba(245, 237, 224, 0.92); */
+  /* backdrop-filter: blur(8px); */
+
   border-bottom: 1px solid rgba(180, 150, 100, 0.2);
-  padding: 0.85rem 0; /* ✅ SAME HEIGHT */
+  padding: 0.85rem 0;
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.04);
   direction: rtl;
   position: sticky;
@@ -54,7 +61,7 @@
 
 .nav-links a {
   text-decoration: none;
-  color: var(--color-text-muted);
+  color: #2c1a0e;
   font-size: 1.15rem; /* bigger text */
   font-weight: 500;
   transition: color 0.2s ease;
@@ -80,6 +87,7 @@
 
   .brand-name {
     display: none;
+    color: #1a0f00;
   }
 
   .brand-logo {

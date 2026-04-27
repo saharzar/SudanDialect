@@ -76,10 +76,7 @@ app-root {
 
   /* ── Watercolor illustration pinned to the bottom ── */
   /*    Save Image 3 as: src/assets/background.png        */
-  background-image: url('/background.jpeg');
-  background-repeat: no-repeat;
-  background-position: bottom center;
-  background-size: 100% auto;
+
   position: relative;
 }
 
@@ -151,51 +148,30 @@ h1.main-title {
 
 /* ── Search bar ── */
 .search-wrapper {
-  display: flex;
-  align-items: stretch;
-  background: var(--color-bg-input);
+  background-color: rgba(245, 225, 185, 0.75); /* warm parchment, semi-transparent */
+  border: 1px solid rgba(180, 130, 70, 0.5); /* warm brown border */
   border-radius: var(--radius-input);
-  box-shadow: var(--shadow-input);
-  overflow: hidden;
-  border: 1px solid rgba(196, 154, 108, 0.3);
-  max-width: 600px;
-  width: 100%;
-  margin: 0 auto;
 }
 
 .search-input {
-  flex: 1;
-  border: none;
-  outline: none;
-  padding: 0.85rem 1.25rem;
-  font-size: 1.05rem;
-  font-family: var(--app-font-family);
-  color: var(--color-text-main);
-  background: transparent;
-  direction: rtl;
-  text-align: right;
-}
-
-.search-input::placeholder {
-  color: var(--color-text-light);
+  background: transparent; /* ← must be transparent */
 }
 
 .search-btn {
-  background-color: var(--color-primary-light);
-  color: #fff;
+  background: transparent; /* ← transparent so parchment shows */
+  color: var(--color-primary); /* change icon color to green */
   border: none;
   padding: 0 1.25rem;
   cursor: pointer;
   font-size: 1.2rem;
-  transition: background-color 0.2s;
+  transition: opacity 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 0 var(--radius-input) var(--radius-input) 0;
 }
 
 .search-btn:hover {
-  background-color: var(--color-primary);
+  opacity: 0.7;
 }
 
 /* ── Feature cards ── */
